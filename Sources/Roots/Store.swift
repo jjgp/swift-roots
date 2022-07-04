@@ -19,30 +19,10 @@ public final class Store<S: State>: StatePublisher, ActionSubject {
             .removeDuplicates()
             .assign(to: \.state, on: self)
             .store(in: &cancellables)
-
-        // TODO: WIP
-        S.map(with: self)
     }
 }
 
-public extension Store {
-    @discardableResult
-    func map<T: State>(child _: WritableKeyPath<S, T>) -> Self {
-        /* TODO:
-         - create child store tree
-         - map child state back to state
-         */
-        self
-    }
-
-    func store<T: State>(for _: WritableKeyPath<S, T>) -> Store<T> {
-        /* TODO:
-         - if not registered throw
-         - return child store
-         */
-        fatalError("Not yet implemented")
-    }
-}
+public extension Store {}
 
 public extension Store {
     func send(_ action: Action) {

@@ -19,6 +19,10 @@ class StoreTests: XCTestCase {
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -10, 0])
     }
+
+    func testPingPong() async {
+        _ = Store(initialState: PingPong())
+    }
 }
 
 // MARK: - Test Helpers
@@ -31,19 +35,11 @@ struct PingPong {
 }
 
 extension PingPong: State {
-    enum Action: String {
-        case none
-    }
-
-    static func map(with store: Store<Self>) {
-        store
-            .map(child: \.ping)
-            .map(child: \.pong)
-    }
-
     static func reducer(state: inout PingPong, action _: Action) -> PingPong {
         state
     }
+
+    typealias Action = Inaction
 }
 
 struct Count {
@@ -54,8 +50,6 @@ extension Count: State {
     enum Action {
         case initialize, increment(Int), decrement(Int)
     }
-
-    static func map(with _: Store<Self>) {}
 
     static func reducer(state: inout Self, action: Action) -> Self {
         switch action {
