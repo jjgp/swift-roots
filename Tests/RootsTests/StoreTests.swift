@@ -7,16 +7,17 @@ class StoreTests: XCTestCase {
         let sut = makeSut()
         let spy = PublisherSpy(sut.$state)
         sut.send(.initialize)
-        XCTAssertEqual(spy.values, [nil, Count()])
+        XCTAssertEqual(spy.values, [Count(), Count()])
     }
 
     func testUpdatingCount() async {
-        let sut = makeSut(initialState: Count())
+        let sut = makeSut()
         let spy = PublisherSpy(sut.$state)
         sut.send(.increment(10))
         sut.send(.decrement(20))
-        let values = spy.values.map { $0?.count }
-        XCTAssertEqual(values, [0, 10, -10])
+        sut.send(.initialize)
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 10, -10, 0])
     }
 }
 
@@ -29,7 +30,7 @@ struct PingPong {
 
 extension PingPong: State {
     enum Action: String {
-        case initialize
+        case none
     }
 
     static func map(with store: Store<Self>) {
@@ -81,19 +82,19 @@ extension Count.Action: RawRepresentable {
     }
 }
 
-private func reducer(state: inout Count?, action: Count.Action) -> Count {
+private func reducer(state: inout Count, action: Count.Action) -> Count {
     switch action {
     case .initialize:
         return Count()
     case let .increment(value):
-        state?.count += value
+        state.count += value
     case let .decrement(value):
-        state?.count -= value
+        state.count -= value
     }
-    return state ?? Count()
+    return state
 }
 
-private func makeSut(initialState: Count? = nil) -> Store<Count> {
+private func makeSut(initialState: Count = Count()) -> Store<Count> {
     Store(initialState: initialState, reducer: reducer(state:action:))
 }
 

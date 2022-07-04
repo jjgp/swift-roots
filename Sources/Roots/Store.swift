@@ -1,15 +1,15 @@
 import Combine
 
-public typealias Reducer<S: State> = (inout S?, S.Action) -> S
+public typealias Reducer<S: State> = (inout S, S.Action) -> S
 
 public final class Store<S: State>: StatePublisher, ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
     private(set) var subject: PassthroughSubject<Action, Never>
-    @Published private(set) var state: S?
-    var statePublished: Published<S?> { _state }
-    var statePublisher: Published<S?>.Publisher { $state }
+    @Published private(set) var state: S
+    var statePublished: Published<S> { _state }
+    var statePublisher: Published<S>.Publisher { $state }
 
-    public init(initialState: S?, reducer: @escaping Reducer<S>) {
+    public init(initialState: S, reducer: @escaping Reducer<S>) {
         state = initialState
         subject = PassthroughSubject<Action, Never>()
         subject
@@ -22,6 +22,7 @@ public final class Store<S: State>: StatePublisher, ActionSubject {
             .assign(to: \.state, on: self)
             .store(in: &cancellables)
 
+        // TODO: WIP
         S.map(with: self)
     }
 }
