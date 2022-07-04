@@ -5,6 +5,8 @@ public protocol ActionSender {
 
     func send(_ action: Action)
 
+    // TODO: support subscribe without combine
+
     typealias Action = S.Action
 }
 

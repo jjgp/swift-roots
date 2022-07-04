@@ -23,6 +23,8 @@ class StoreTests: XCTestCase {
 
 // MARK: - Test Helpers
 
+// MARK: State
+
 struct PingPong {
     var ping: Count = .init()
     var pong: Count = .init()
@@ -38,6 +40,10 @@ extension PingPong: State {
             .map(child: \.ping)
             .map(child: \.pong)
     }
+
+    static func reducer(state: inout PingPong, action _: Action) -> PingPong {
+        state
+    }
 }
 
 struct Count {
@@ -50,6 +56,18 @@ extension Count: State {
     }
 
     static func map(with _: Store<Self>) {}
+
+    static func reducer(state: inout Self, action: Action) -> Self {
+        switch action {
+        case .initialize:
+            return Count()
+        case let .increment(value):
+            state.count += value
+        case let .decrement(value):
+            state.count -= value
+        }
+        return state
+    }
 }
 
 extension Count.Action: RawRepresentable {
@@ -82,20 +100,10 @@ extension Count.Action: RawRepresentable {
     }
 }
 
-private func reducer(state: inout Count, action: Count.Action) -> Count {
-    switch action {
-    case .initialize:
-        return Count()
-    case let .increment(value):
-        state.count += value
-    case let .decrement(value):
-        state.count -= value
-    }
-    return state
-}
+// MARK: SUT & Spy
 
 private func makeSut(initialState: Count = Count()) -> Store<Count> {
-    Store(initialState: initialState, reducer: reducer(state:action:))
+    Store(initialState: initialState)
 }
 
 private class PublisherSpy<P: Publisher> {

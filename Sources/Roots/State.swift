@@ -6,4 +6,6 @@ public protocol State: Equatable {
      - need to be able to supply reducer, middleware, effects
      */
     static func map(with store: Store<Self>)
+
+    static func reducer(state: inout Self, action: Action) -> Self
 }

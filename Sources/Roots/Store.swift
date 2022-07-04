@@ -1,7 +1,5 @@
 import Combine
 
-public typealias Reducer<S: State> = (inout S, S.Action) -> S
-
 public final class Store<S: State>: StatePublisher, ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
     private(set) var subject: PassthroughSubject<Action, Never>
@@ -9,14 +7,14 @@ public final class Store<S: State>: StatePublisher, ActionSubject {
     var statePublished: Published<S> { _state }
     var statePublisher: Published<S>.Publisher { $state }
 
-    public init(initialState: S, reducer: @escaping Reducer<S>) {
+    public init(initialState: S) {
         state = initialState
         subject = PassthroughSubject<Action, Never>()
         subject
             // TODO: middleware and/or effects
             .scan(initialState) { state, action in
                 var state = state
-                return reducer(&state, action)
+                return S.reducer(state: &state, action: action)
             }
             .removeDuplicates()
             .assign(to: \.state, on: self)
