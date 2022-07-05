@@ -1,11 +1,9 @@
 import Combine
 
-public final class Store<S: State>: StatePublisher, ActionSubject {
+public final class Store<S: State>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
     let subject = PassthroughSubject<Action, Never>()
     @Published private(set) var state: S
-    var statePublished: Published<S> { _state }
-    var statePublisher: Published<S>.Publisher { $state }
 
     public init(initialState: S, reducer: @escaping Reducer<S>) {
         state = initialState
@@ -28,7 +26,7 @@ public final class Store<S: State>: StatePublisher, ActionSubject {
             return parentState
         }
         parent
-            .statePublisher
+            .$state
             .map(keyPath)
             .assign(to: \.state, on: self)
             .store(in: &cancellables)
@@ -62,4 +60,8 @@ public extension Store {
     func send(_ action: Action) {
         subject.send(action)
     }
+}
+
+public extension Store {
+    typealias SubscribeToken = AnyCancellable
 }

@@ -5,14 +5,14 @@ import XCTest
 class StoreTests: XCTestCase {
     func testInitialize() {
         let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
-        let spy = PublisherSpy(sut.statePublisher)
+        let spy = PublisherSpy(sut.$state)
         sut.send(.initialize)
         XCTAssertEqual(spy.values, [Count(), Count()])
     }
 
     func testUpdatingCount() {
         let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
-        let spy = PublisherSpy(sut.statePublisher)
+        let spy = PublisherSpy(sut.$state)
         sut.send(.increment(10))
         sut.send(.decrement(20))
         sut.send(.initialize)
@@ -22,9 +22,9 @@ class StoreTests: XCTestCase {
 
     func testParentAndChildStores() {
         let parentSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
-        let parentSpy = PublisherSpy(parentSUT.statePublisher)
+        let parentSpy = PublisherSpy(parentSUT.$state)
         let childSUT = parentSUT.store(from: \.ping, reducer: Count.reducer(state:action:))
-        let childSpy = PublisherSpy(childSUT.statePublisher)
+        let childSpy = PublisherSpy(childSUT.$state)
         childSUT.send(.increment(10))
         childSUT.send(.decrement(20))
         childSUT.send(.initialize)
