@@ -1,6 +1,6 @@
 import Roots
 
-// MARK: Ping Pong
+// MARK: PingPong
 
 struct PingPong {
     var ping: Count = .init()
@@ -8,14 +8,19 @@ struct PingPong {
 }
 
 extension PingPong: State {
-    static func reducer(state: inout PingPong, action _: Action) -> PingPong {
-        state
+    static func reducer(state _: inout PingPong, action: Action) -> PingPong {
+        switch action {
+        case .initialize:
+            return PingPong()
+        }
     }
 
     enum Action: String {
-        case inaction
+        case initialize
     }
 }
+
+// MARK: Count
 
 struct Count {
     var count = 0

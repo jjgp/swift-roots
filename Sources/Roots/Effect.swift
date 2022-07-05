@@ -19,6 +19,8 @@ public struct Effect<S: State> {
         }
     }
 
+    // TODO: These should take a send argument because the effects may not send an action for each state-action tuple
+
     public init(transform: @escaping (S, S.Action) -> S.Action) {
         effect = {
             $0
@@ -46,6 +48,6 @@ public struct Effect<S: State> {
     }
 
     public typealias ActionPublisher = AnyPublisher<S.Action, Never>
-    public typealias StatePublisher = AnyPublisher<S, Never>
     typealias Send = (S.Action) -> Void
+    public typealias StatePublisher = AnyPublisher<S, Never>
 }
