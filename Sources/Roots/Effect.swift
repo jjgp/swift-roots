@@ -1,6 +1,8 @@
 import Combine
 
 public struct Effect<S: State> {
+    // TODO: the scheduling is not on the same queue/threads so race conditions are abound
+
     let effect: (StatePublisher, ActionPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
@@ -21,16 +23,17 @@ public struct Effect<S: State> {
 
     // TODO: These should take a send argument because the effects may not send an action for each state-action tuple
 
-    public init(transform: @escaping (S, S.Action) -> S.Action) {
+    public init(transform: @escaping (S, S.Action) -> S.Action?) {
         effect = {
             $0
                 .combineLatest($1, transform)
+                .compactMap { $0 }
                 .eraseToAnyPublisher()
                 .sink(receiveValue: $2)
         }
     }
 
-    public init(transform: @escaping (S, S.Action) async -> S.Action) {
+    public init(transform: @escaping (S, S.Action) async -> S.Action?) {
         effect = {
             $0
                 .combineLatest($1)
@@ -42,6 +45,7 @@ public struct Effect<S: State> {
                         }
                     }
                 }
+                .compactMap { $0 }
                 .eraseToAnyPublisher()
                 .sink(receiveValue: $2)
         }

@@ -50,7 +50,6 @@ private extension Store {
             .removeDuplicates()
             .assign(to: \.state, on: store)
             .store(in: &cancellables)
-
         effect?
             .effect(
                 $state.eraseToAnyPublisher(),
