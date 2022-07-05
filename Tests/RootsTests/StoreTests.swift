@@ -3,16 +3,16 @@ import Combine
 import XCTest
 
 class StoreTests: XCTestCase {
-    func testInitialize() async {
-        let sut = makeSut()
-        let spy = PublisherSpy(sut.$state)
+    func testInitialize() {
+        let sut = makeSut(initialState: Count())
+        let spy = PublisherSpy(sut.statePublisher)
         sut.send(.initialize)
         XCTAssertEqual(spy.values, [Count(), Count()])
     }
 
-    func testUpdatingCount() async {
-        let sut = makeSut()
-        let spy = PublisherSpy(sut.$state)
+    func testUpdatingCount() {
+        let sut = makeSut(initialState: Count())
+        let spy = PublisherSpy(sut.statePublisher)
         sut.send(.increment(10))
         sut.send(.decrement(20))
         sut.send(.initialize)
@@ -20,8 +20,18 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(values, [0, 10, -10, 0])
     }
 
-    func testPingPong() async {
-        _ = Store(initialState: PingPong())
+    func testParentAndChildStores() {
+        let parentSUT = makeSut(initialState: PingPong())
+        let parentSpy = PublisherSpy(parentSUT.statePublisher)
+        let childSUT = parentSUT.store(from: \.ping)
+        let childSpy = PublisherSpy(childSUT.statePublisher)
+        childSUT.send(.increment(10))
+        childSUT.send(.decrement(20))
+        childSUT.send(.initialize)
+        let parentValues = parentSpy.values.map(\.ping.count)
+        let childValues = childSpy.values.map(\.count)
+        XCTAssertEqual(parentValues, [0, 10, -10, 0])
+        XCTAssertEqual(childValues, [0, 10, -10, 0])
     }
 }
 
@@ -39,7 +49,9 @@ extension PingPong: State {
         state
     }
 
-    typealias Action = Inaction
+    enum Action: String {
+        case inaction
+    }
 }
 
 struct Count {
@@ -96,7 +108,7 @@ extension Count.Action: RawRepresentable {
 
 // MARK: SUT & Spy
 
-private func makeSut(initialState: Count = Count()) -> Store<Count> {
+private func makeSut<S: State>(initialState: S) -> Store<S> {
     Store(initialState: initialState)
 }
 
