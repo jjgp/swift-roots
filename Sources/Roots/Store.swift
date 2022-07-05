@@ -7,23 +7,24 @@ public final class Store<S: State>: StatePublisher, ActionSubject {
     var statePublished: Published<S> { _state }
     var statePublisher: Published<S>.Publisher { $state }
 
-    public init(initialState: S) {
+    public init(initialState: S, reducer: @escaping Reducer<S>) {
         state = initialState
         combine(state, to: self) { state, action in
             var state = state
-            return S.reducer(state: &state, action: action)
+            return reducer(&state, action)
         }
     }
 
     init<Parent: State>(
         from keyPath: WritableKeyPath<Parent, S>,
-        on parent: Store<Parent>
+        on parent: Store<Parent>,
+        reducer: @escaping Reducer<S>
     ) {
         state = parent.state[keyPath: keyPath]
         combine(parent.state, to: parent) { parentState, action in
             var parentState = parentState
             var childState = parentState[keyPath: keyPath]
-            parentState[keyPath: keyPath] = S.reducer(state: &childState, action: action)
+            parentState[keyPath: keyPath] = reducer(&childState, action)
             return parentState
         }
         parent
@@ -49,8 +50,11 @@ private extension Store {
 }
 
 public extension Store {
-    func store<T: State>(from keyPath: WritableKeyPath<S, T>) -> Store<T> {
-        Store<T>(from: keyPath, on: self)
+    func store<T: State>(
+        from keyPath: WritableKeyPath<S, T>,
+        reducer: @escaping Reducer<T>
+    ) -> Store<T> {
+        Store<T>(from: keyPath, on: self, reducer: reducer)
     }
 }
 

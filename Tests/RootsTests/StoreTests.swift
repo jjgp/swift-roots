@@ -4,14 +4,14 @@ import XCTest
 
 class StoreTests: XCTestCase {
     func testInitialize() {
-        let sut = makeSut(initialState: Count())
+        let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
         let spy = PublisherSpy(sut.statePublisher)
         sut.send(.initialize)
         XCTAssertEqual(spy.values, [Count(), Count()])
     }
 
     func testUpdatingCount() {
-        let sut = makeSut(initialState: Count())
+        let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
         let spy = PublisherSpy(sut.statePublisher)
         sut.send(.increment(10))
         sut.send(.decrement(20))
@@ -21,9 +21,9 @@ class StoreTests: XCTestCase {
     }
 
     func testParentAndChildStores() {
-        let parentSUT = makeSut(initialState: PingPong())
+        let parentSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let parentSpy = PublisherSpy(parentSUT.statePublisher)
-        let childSUT = parentSUT.store(from: \.ping)
+        let childSUT = parentSUT.store(from: \.ping, reducer: Count.reducer(state:action:))
         let childSpy = PublisherSpy(childSUT.statePublisher)
         childSUT.send(.increment(10))
         childSUT.send(.decrement(20))
@@ -106,11 +106,7 @@ extension Count.Action: RawRepresentable {
     }
 }
 
-// MARK: SUT & Spy
-
-private func makeSut<S: State>(initialState: S) -> Store<S> {
-    Store(initialState: initialState)
-}
+// MARK: Spy
 
 private class PublisherSpy<P: Publisher> {
     private var cancellable: AnyCancellable!
