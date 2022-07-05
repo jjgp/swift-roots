@@ -4,11 +4,18 @@ import XCTest
 
 class EffectTests: XCTestCase {
     func testSynchronousEffect() {
-        let effect = Effect<Count>(transform: { _, action in
-            if case let .increment(value) = action {
-                return .decrement(value)
-            }
-            return nil
+        let effect = Effect<Count>(publisher: { _, actionPublisher in
+            actionPublisher
+                .filter {
+                    if case .increment = $0 {
+                        return true
+                    } else {
+                        return false
+                    }
+                }
+                .map { _ in
+                    .decrement(10)
+                }
         })
         let store = Store(
             initialState: Count(),

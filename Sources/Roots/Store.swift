@@ -53,6 +53,8 @@ private extension Store {
         effect?
             .effect(
                 $state.eraseToAnyPublisher(),
+                // Note this will compete with the above chain for which gets scheduled first and updates state.
+                // TODO: rearchitect the streams
                 subject.eraseToAnyPublisher(),
                 subject.send
             )
