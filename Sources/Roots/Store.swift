@@ -53,8 +53,8 @@ private extension Store {
 
         effect?
             .effect(
-                subject.eraseToAnyPublisher(),
                 $state.eraseToAnyPublisher(),
+                subject.eraseToAnyPublisher(),
                 subject.send
             )
             .store(in: &cancellables)
