@@ -10,10 +10,37 @@ public final class Store<S: State>: ActionSubject {
                 effect: Effect<S>? = nil)
     {
         state = initialState
-        combine(state, on: self, effect: effect) { state, action in
-            var state = state
-            return reducer(&state, action)
-        }
+
+        let nextState = subject
+            .scan(initialState) { state, action in
+                // Each subscription will rerun this send block. And since both have views to
+                // the value type semantics of an initial state. Their subscription will result in updating
+                // two views of the same initial state. One will update the store and the other will update the
+                // effect. Need to combine into one stream and update the state and effect consistently to
+                // rid this of the errors
+                var state = state
+                let nextState = reducer(&state, action)
+                print("in reducer")
+                print(nextState, action)
+                return nextState
+            }
+
+        nextState
+            .removeDuplicates()
+            .assign(to: \.state, on: self)
+            .store(in: &cancellables)
+
+        nextState
+            .zip(subject)
+            .sink(receiveValue: { print($0) })
+            .store(in: &cancellables)
+
+        effect?
+            .effect(
+                nextState.zip(subject).eraseToAnyPublisher(),
+                subject.send(_:)
+            )
+            .store(in: &cancellables)
     }
 
     init<Parent: State>(
@@ -40,25 +67,25 @@ public final class Store<S: State>: ActionSubject {
 private extension Store {
     @inline(__always)
     func combine<T: State, Root: Store<T>>(
-        _ initialState: T,
-        on store: Root,
-        effect: Effect<S>?,
-        _ nextPartialState: @escaping (T, Action) -> T
+        _: T,
+        on _: Root,
+        effect _: Effect<S>?,
+        _: @escaping (T, Action) -> T
     ) {
-        subject
-            .scan(initialState, nextPartialState)
-            .removeDuplicates()
-            .assign(to: \.state, on: store)
-            .store(in: &cancellables)
-        effect?
-            .effect(
-                $state.eraseToAnyPublisher(),
-                // Note this will compete with the above chain for which gets scheduled first and updates state.
-                // TODO: rearchitect the streams
-                subject.eraseToAnyPublisher(),
-                subject.send
-            )
-            .store(in: &cancellables)
+//        let nextState = subject
+//            .scan(initialState, nextPartialState)
+//
+//        nextState
+//            .removeDuplicates()
+//            .assign(to: \.state, on: store)
+//            .store(in: &cancellables)
+//
+//        effect?
+//            .effect(
+//                nextState.zip(subject),
+//                subject.send
+//            )
+//            .store(in: &cancellables)
     }
 }
 

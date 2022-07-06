@@ -2,56 +2,57 @@ import Combine
 
 public struct Effect<S: State> {
     // TODO: the scheduling is not on the same queue/threads so race conditions are abound
+    // actually the default scheduling will occur on the current thread if possible. probably could
+    // open up the scheduler to the store and effect w/ environment variable
 
-    let effect: (StatePublisher, ActionPublisher, @escaping Send) -> AnyCancellable
+    let effect: (CombineLatestPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
-        publisher: @escaping (StatePublisher, ActionPublisher) -> P
+        publisher: @escaping (CombineLatestPublisher) -> P
     ) where P.Output == S.Action, P.Failure == Never {
         effect = {
-            publisher($0, $1)
+            publisher($0)
                 .eraseToAnyPublisher()
-                .sink(receiveValue: $2)
+                .sink(receiveValue: $1)
         }
     }
 
-    public init(sink: @escaping (StatePublisher, ActionPublisher) -> AnyCancellable) {
-        effect = { actionPublisher, statePublisher, _ in
-            sink(actionPublisher, statePublisher)
+    public init(sink: @escaping (CombineLatestPublisher) -> AnyCancellable) {
+        effect = { combineLatestPublisher, _ in
+            sink(combineLatestPublisher)
         }
     }
 
     // TODO: These should take a send argument because the effects may not send an action for each state-action tuple
 
     public init(transform: @escaping (S, S.Action) -> S.Action?) {
-        effect = {
-            $0
-                .combineLatest($1, transform)
-                .compactMap { $0 }
-                .eraseToAnyPublisher()
-                .sink(receiveValue: $2)
-        }
-    }
-
-    public init(transform: @escaping (S, S.Action) async -> S.Action?) {
-        effect = {
-            $0
-                .combineLatest($1)
-                .flatMap { state, action in
-                    Future { promise in
-                        Task {
-                            let action = await transform(state, action)
-                            promise(.success(action))
-                        }
-                    }
+        effect = { p, s in
+            p
+                .map { state, action in
+                    transform(state, action)
                 }
                 .compactMap { $0 }
                 .eraseToAnyPublisher()
-                .sink(receiveValue: $2)
+                .sink(receiveValue: { value in
+                    print("in effect send")
+                    print(value)
+                    s(value)
+                })
         }
     }
 
-    public typealias ActionPublisher = AnyPublisher<S.Action, Never>
+//    public init(transform: @escaping (S, S.Action) async -> S.Action?) {
+//        effect = {
+//            $0
+//                .map { state, action in
+//                    transform(state, action)
+//                }
+//                .compactMap { $0 }
+//                .eraseToAnyPublisher()
+//                .sink(receiveValue: $1)
+//        }
+//    }
+
+    public typealias CombineLatestPublisher = AnyPublisher<(S, S.Action), Never>
     typealias Send = (S.Action) -> Void
-    public typealias StatePublisher = AnyPublisher<S, Never>
 }
