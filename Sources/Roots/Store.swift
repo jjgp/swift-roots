@@ -46,9 +46,12 @@ private extension Store {
                 return nextState
             }
             .zip(subject)
+            .share()
 
         (effect ?? .noEffect)
-            .effect(stateActionPair.eraseToAnyPublisher(), subject.send(_:))
+            .effect(stateActionPair.eraseToAnyPublisher()) { [weak self] action in
+                self?.subject.send(action)
+            }
             .store(in: &cancellables)
     }
 }

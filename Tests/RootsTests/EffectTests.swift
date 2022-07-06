@@ -4,11 +4,9 @@ import XCTest
 
 class EffectTests: XCTestCase {
     func testSynchronousEffect() {
-        let effect = Effect<Count>(transform: { _, action in
+        let effect = Effect<Count>(sender: { _, action, send in
             if case let .increment(value) = action {
-                return .decrement(value)
-            } else {
-                return nil
+                send(.decrement(value))
             }
         })
         let store = Store(
@@ -27,17 +25,15 @@ class EffectTests: XCTestCase {
 
     func testAsynchronousEffect() {
         let expect = expectation(description: "The value is decremented")
-        let effect = Effect<Count>(transform: { _, action in
-            // TODO: need to find way to reschedule onto the dispatching queue/thread
-            // Currently the decrement has no effect because the Future/Task will go to another queue
-            // Setting a breakpoint after store.send(:) will pause the main queue and allow decrement to take effect
+        let effect = Effect<Count>(sender: { _, action, send in
             try? await Task.sleep(nanoseconds: 100)
             if case .increment = action {
-                return .decrement(100)
+                await MainActor.run {
+                    send(.decrement(100))
+                }
             } else if case .decrement = action {
                 expect.fulfill()
             }
-            return nil
         })
         let store = Store(
             initialState: Count(),
@@ -46,8 +42,8 @@ class EffectTests: XCTestCase {
         )
         let spy = PublisherSpy(store.$state)
         store.send(.increment(10))
-        let values = spy.values.map(\.count)
         wait(for: [expect], timeout: .infinity)
+        let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -90])
     }
 
