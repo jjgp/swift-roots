@@ -1,4 +1,5 @@
 import Combine
+import Foundation
 
 public final class Store<S: State>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
@@ -10,24 +11,7 @@ public final class Store<S: State>: ActionSubject {
                 effect: Effect<S>? = nil)
     {
         state = initialState
-        let stateActionPair = subject
-            .scan(initialState) { [weak self] previousState, action in
-                var nextState = previousState
-                nextState = reducer(&nextState, action)
-                if previousState != nextState {
-                    self?.state = nextState
-                }
-                return nextState
-            }
-            .zip(subject)
-            .eraseToAnyPublisher()
-
-        effect?
-            .effect(
-                stateActionPair,
-                subject.send(_:)
-            )
-            .store(in: &cancellables)
+        combine(state, reducer: reducer, effect: effect)
     }
 
     init<Parent: State>(
@@ -37,42 +21,39 @@ public final class Store<S: State>: ActionSubject {
         effect: Effect<S>? = nil
     ) {
         state = parent.state[keyPath: keyPath]
-        combine(parent.state, on: parent, effect: effect) { parentState, action in
-            var parentState = parentState
-            var childState = parentState[keyPath: keyPath]
-            parentState[keyPath: keyPath] = reducer(&childState, action)
-            return parentState
+        combine(state, reducer: reducer, effect: effect) { [weak parent] nextState in
+            parent?.state[keyPath: keyPath] = nextState
         }
-        parent
-            .$state
-            .map(keyPath)
-            .assign(to: \.state, on: self)
-            .store(in: &cancellables)
     }
 }
 
 private extension Store {
     @inline(__always)
-    func combine<T: State, Root: Store<T>>(
-        _: T,
-        on _: Root,
-        effect _: Effect<S>?,
-        _: @escaping (T, Action) -> T
+    func combine(
+        _ state: S,
+        reducer: @escaping Reducer<S>,
+        effect: Effect<S>?,
+        onUpdateState: ((S) -> Void)? = nil
     ) {
-//        let nextState = subject
-//            .scan(initialState, nextPartialState)
-//
-//        nextState
-//            .removeDuplicates()
-//            .assign(to: \.state, on: store)
-//            .store(in: &cancellables)
-//
-//        effect?
-//            .effect(
-//                nextState.zip(subject),
-//                subject.send
-//            )
-//            .store(in: &cancellables)
+        let stateActionPair = subject
+            .scan(state) { [weak self] previousState, action in
+                var nextState = previousState
+                nextState = reducer(&nextState, action)
+                if previousState != nextState {
+                    onUpdateState?(nextState)
+                    self?.state = nextState
+                }
+                return nextState
+            }
+            .zip(subject)
+            .share()
+
+        effect?
+            .effect(stateActionPair.eraseToAnyPublisher(), subject.send(_:))
+            .store(in: &cancellables)
+
+        // TODO: need to find a cleaner way to start signal without effects!
+        stateActionPair.sink(receiveValue: { $0 }).store(in: &cancellables)
     }
 }
 

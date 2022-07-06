@@ -19,31 +19,34 @@ public struct Effect<S: State> {
         }
     }
 
-    // TODO: These should take a send argument because the effects may not send an action for each state-action tuple
-
     public init(transform: @escaping (S, S.Action) -> S.Action?) {
-        effect = { p, s in
-            p
+        effect = {
+            $0
                 .map { state, action in
                     transform(state, action)
                 }
                 .compactMap { $0 }
                 .eraseToAnyPublisher()
-                .sink(receiveValue: s)
+                .sink(receiveValue: $1)
         }
     }
 
-//    public init(transform: @escaping (S, S.Action) async -> S.Action?) {
-//        effect = {
-//            $0
-//                .map { state, action in
-//                    transform(state, action)
-//                }
-//                .compactMap { $0 }
-//                .eraseToAnyPublisher()
-//                .sink(receiveValue: $1)
-//        }
-//    }
+    public init(transform: @escaping (S, S.Action) async -> S.Action?) {
+        effect = {
+            $0
+                .flatMap { state, action in
+                    Future { promise in
+                        Task {
+                            let action = await transform(state, action)
+                            promise(.success(action))
+                        }
+                    }
+                }
+                .compactMap { $0 }
+                .eraseToAnyPublisher()
+                .sink(receiveValue: $1)
+        }
+    }
 
     public typealias CombineLatestPublisher = AnyPublisher<(S, S.Action), Never>
     typealias Send = (S.Action) -> Void
