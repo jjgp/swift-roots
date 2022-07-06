@@ -3,8 +3,8 @@ import Foundation
 
 public final class Store<S: State>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
-    let subject = PassthroughSubject<Action, Never>()
     @Published private(set) var state: S
+    let subject = PassthroughSubject<Action, Never>()
 
     public init(initialState: S,
                 reducer: @escaping Reducer<S>,
@@ -46,14 +46,10 @@ private extension Store {
                 return nextState
             }
             .zip(subject)
-            .share()
 
-        effect?
+        (effect ?? .noEffect)
             .effect(stateActionPair.eraseToAnyPublisher(), subject.send(_:))
             .store(in: &cancellables)
-
-        // TODO: need to find a cleaner way to start signal without effects!
-        stateActionPair.sink(receiveValue: { $0 }).store(in: &cancellables)
     }
 }
 

@@ -51,3 +51,9 @@ public struct Effect<S: State> {
     public typealias CombineLatestPublisher = AnyPublisher<(S, S.Action), Never>
     typealias Send = (S.Action) -> Void
 }
+
+extension Effect {
+    static var noEffect: Self {
+        Effect(sink: { $0.sink(receiveValue: { _ in }) })
+    }
+}
