@@ -10,34 +10,21 @@ public final class Store<S: State>: ActionSubject {
                 effect: Effect<S>? = nil)
     {
         state = initialState
-
-        let nextState = subject
-            .scan(initialState) { state, action in
-                // Each subscription will rerun this send block. And since both have views to
-                // the value type semantics of an initial state. Their subscription will result in updating
-                // two views of the same initial state. One will update the store and the other will update the
-                // effect. Need to combine into one stream and update the state and effect consistently to
-                // rid this of the errors
-                var state = state
-                let nextState = reducer(&state, action)
-                print("in reducer")
-                print(nextState, action)
+        let stateActionPair = subject
+            .scan(initialState) { [weak self] previousState, action in
+                var nextState = previousState
+                nextState = reducer(&nextState, action)
+                if previousState != nextState {
+                    self?.state = nextState
+                }
                 return nextState
             }
-
-        nextState
-            .removeDuplicates()
-            .assign(to: \.state, on: self)
-            .store(in: &cancellables)
-
-        nextState
             .zip(subject)
-            .sink(receiveValue: { print($0) })
-            .store(in: &cancellables)
+            .eraseToAnyPublisher()
 
         effect?
             .effect(
-                nextState.zip(subject).eraseToAnyPublisher(),
+                stateActionPair,
                 subject.send(_:)
             )
             .store(in: &cancellables)

@@ -1,10 +1,6 @@
 import Combine
 
 public struct Effect<S: State> {
-    // TODO: the scheduling is not on the same queue/threads so race conditions are abound
-    // actually the default scheduling will occur on the current thread if possible. probably could
-    // open up the scheduler to the store and effect w/ environment variable
-
     let effect: (CombineLatestPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
@@ -33,11 +29,7 @@ public struct Effect<S: State> {
                 }
                 .compactMap { $0 }
                 .eraseToAnyPublisher()
-                .sink(receiveValue: { value in
-                    print("in effect send")
-                    print(value)
-                    s(value)
-                })
+                .sink(receiveValue: s)
         }
     }
 

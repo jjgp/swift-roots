@@ -21,11 +21,11 @@ class EffectTests: XCTestCase {
 
         let spy = PublisherSpy(store.$state)
         store.send(.increment(10))
-//        store.send(.increment(20))
-//        store.send(.increment(40))
+        store.send(.increment(20))
+        store.send(.increment(40))
         let values = spy.values.map(\.count)
 
-        XCTAssertEqual(values, [0, 10, 0])
+        XCTAssertEqual(values, [0, 10, 0, 20, 0, 40, 0])
     }
 
     func testAsynchronousEffect() {
