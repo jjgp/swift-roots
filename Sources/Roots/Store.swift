@@ -59,9 +59,10 @@ private extension Store {
 public extension Store {
     func store<T: State>(
         from keyPath: WritableKeyPath<S, T>,
-        reducer: @escaping Reducer<T>
+        reducer: @escaping Reducer<T>,
+        effect: Effect<T>? = nil
     ) -> Store<T> {
-        Store<T>(from: keyPath, on: self, reducer: reducer)
+        Store<T>(from: keyPath, on: self, reducer: reducer, effect: effect)
     }
 }
 
