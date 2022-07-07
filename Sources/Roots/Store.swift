@@ -20,7 +20,8 @@ public final class Store<S: State>: ActionSubject {
         effect: Effect<S>? = nil
     ) {
         // TODO: cache the children store and return it for subsequent calls. Would be ideal if
-        // it was weakly referenced...
+        // it was weakly referenced... and/or share the $state reference. This may need to refactor
+        // away from using @Published?
         state = parent.state[keyPath: keyPath]
         combine(state, reducer: reducer, effect: effect) { [weak parent] nextState in
             parent?.state[keyPath: keyPath] = nextState
