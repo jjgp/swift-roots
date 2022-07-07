@@ -20,6 +20,8 @@ public final class Store<S: State>: ActionSubject {
         reducer: @escaping Reducer<S>,
         effect: Effect<S>? = nil
     ) {
+        // TODO: cache the children store and return it for subsequent calls. Would be ideal if
+        // it was weakly referenced...
         state = parent.state[keyPath: keyPath]
         combine(state, reducer: reducer, effect: effect) { [weak parent] nextState in
             parent?.state[keyPath: keyPath] = nextState

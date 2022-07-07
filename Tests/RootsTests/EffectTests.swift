@@ -36,7 +36,7 @@ class EffectTests: XCTestCase {
         )
         let spy = PublisherSpy(store.$state)
         store.send(.increment(10))
-        wait(for: [expect], timeout: .infinity)
+        wait(for: [expect], timeout: 1)
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -90])
     }
@@ -117,6 +117,7 @@ private extension Effect where S == Count {
         Effect<Count>(publisher: { stateActionPair in
             stateActionPair
                 .filter { _, action in
+                    // TODO: make a convenience publisher like redux saga's takeEvery
                     if case .increment = action {
                         return true
                     } else {
