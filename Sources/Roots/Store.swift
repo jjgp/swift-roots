@@ -1,5 +1,4 @@
 import Combine
-import Foundation
 
 public final class Store<S: State>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
