@@ -1,23 +1,23 @@
 import Combine
 
-public final class Store<S: State>: ActionSubject {
+public final class Store<S: State, A: Action>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
     @Published private(set) var state: S
-    let subject = PassthroughSubject<Action, Never>()
+    let subject = PassthroughSubject<A, Never>()
 
     public init(initialState: S,
-                reducer: @escaping Reducer<S>,
-                effect: Effect<S>? = nil)
+                reducer: @escaping Reducer<S, A>,
+                effect: Effect<S, A>? = nil)
     {
         state = initialState
         combine(state, reducer: reducer, effect: effect)
     }
 
-    init<Parent: State>(
+    init<Parent: State, T: Action>(
         from keyPath: WritableKeyPath<Parent, S>,
-        on parent: Store<Parent>,
-        reducer: @escaping Reducer<S>,
-        effect: Effect<S>? = nil
+        on parent: Store<Parent, T>,
+        reducer: @escaping Reducer<S, A>,
+        effect: Effect<S, A>? = nil
     ) {
         // TODO: cache the children store and return it for subsequent calls. Would be ideal if
         // it was weakly referenced... and/or share the $state reference. This may need to refactor
@@ -33,8 +33,8 @@ private extension Store {
     @inline(__always)
     func combine(
         _ state: S,
-        reducer: @escaping Reducer<S>,
-        effect: Effect<S>?,
+        reducer: @escaping Reducer<S, A>,
+        effect: Effect<S, A>?,
         onUpdateState: ((S) -> Void)? = nil
     ) {
         let actionPairPublisher = subject
@@ -60,17 +60,17 @@ private extension Store {
 }
 
 public extension Store {
-    func store<T: State>(
+    func store<T: State, U: Action>(
         from keyPath: WritableKeyPath<S, T>,
-        reducer: @escaping Reducer<T>,
-        effect: Effect<T>? = nil
-    ) -> Store<T> {
-        Store<T>(from: keyPath, on: self, reducer: reducer, effect: effect)
+        reducer: @escaping Reducer<T, U>,
+        effect: Effect<T, U>? = nil
+    ) -> Store<T, U> {
+        Store<T, U>(from: keyPath, on: self, reducer: reducer, effect: effect)
     }
 }
 
 public extension Store {
-    func send(_ action: Action) {
+    func send(_ action: A) {
         subject.send(action)
     }
 }

@@ -15,7 +15,7 @@ extension PingPong: State {
         }
     }
 
-    enum Action: String {
+    enum Action: String, Roots.Action {
         case initialize
     }
 }
@@ -27,7 +27,7 @@ struct Count {
 }
 
 extension Count: State {
-    enum Action {
+    enum Action: Roots.Action {
         case initialize, increment(Int), decrement(Int)
     }
 

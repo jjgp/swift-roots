@@ -1,1 +1,1 @@
-public typealias Reducer<S: State> = (inout S, S.Action) -> S
+public typealias Reducer<S: State, A: Action> = (inout S, A) -> S

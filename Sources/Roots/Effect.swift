@@ -1,11 +1,11 @@
 import Combine
 
-public struct Effect<S: State> {
+public struct Effect<S: State, A: Action> {
     let effect: (ActionPairPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
         publisher: @escaping (ActionPairPublisher) -> P
-    ) where P.Output == S.Action, P.Failure == Never {
+    ) where P.Output == A, P.Failure == Never {
         effect = {
             publisher($0)
                 .eraseToAnyPublisher()
@@ -13,7 +13,7 @@ public struct Effect<S: State> {
         }
     }
 
-    public init(sender: @escaping (S, S.Action, @escaping Send) -> Void) {
+    public init(sender: @escaping (S, A, @escaping Send) -> Void) {
         effect = { actionPairPublisher, send in
             actionPairPublisher.sink { pair in
                 sender(pair.state, pair.action, send)
@@ -21,7 +21,7 @@ public struct Effect<S: State> {
         }
     }
 
-    public init(sender: @escaping (S, S.Action, @escaping Send) async -> Void) {
+    public init(sender: @escaping (S, A, @escaping Send) async -> Void) {
         self.init { state, action, send in
             Task {
                 await sender(state, action, send)
@@ -35,23 +35,23 @@ public struct Effect<S: State> {
         }
     }
 
-    public typealias ActionPairPublisher = AnyPublisher<ActionPair<S>, Never>
+    public typealias ActionPairPublisher = AnyPublisher<ActionPair<S, A>, Never>
     // TODO: instead of passing a send maybe the publisher is merged with the Store's subject
-    public typealias Send = (S.Action) -> Void
+    public typealias Send = (A) -> Void
 }
 
 public extension Effect {
     static func publisher<P: Publisher>(
         publisher: @escaping (ActionPairPublisher) -> P
-    ) -> Self where P.Output == S.Action, P.Failure == Never {
+    ) -> Self where P.Output == A, P.Failure == Never {
         self.init(publisher: publisher)
     }
 
-    static func sender(sender: @escaping (S, S.Action, @escaping Send) -> Void) -> Self {
+    static func sender(sender: @escaping (S, A, @escaping Send) -> Void) -> Self {
         self.init(sender: sender)
     }
 
-    static func sender(sender: @escaping (S, S.Action, @escaping Send) async -> Void) -> Self {
+    static func sender(sender: @escaping (S, A, @escaping Send) async -> Void) -> Self {
         self.init(sender: sender)
     }
 

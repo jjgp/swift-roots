@@ -19,7 +19,7 @@ class EffectTests: XCTestCase {
 
     func testAsynchronousEffect() {
         let expect = expectation(description: "The value is decremented")
-        let effect: Effect<Count> = .sender { _, action, send in
+        let effect: Effect<Count, Count.Action> = .sender { _, action, send in
             try? await Task.sleep(nanoseconds: 100)
             if case .increment = action {
                 await MainActor.run {
@@ -104,7 +104,7 @@ class EffectTests: XCTestCase {
     }
 }
 
-private extension Effect where S == Count {
+private extension Effect where S == Count, A == Count.Action {
     static var senderEffect: Self {
         .sender { _, action, send in
             if case let .increment(value) = action {
