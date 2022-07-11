@@ -114,17 +114,10 @@ private extension Effect where S == Count {
     }
 
     static func publisherEffect() -> Self {
-        .publisher { stateActionPair in
-            stateActionPair
-                .filter { _, action in
-                    // TODO: make a convenience publisher like redux saga's takeEvery
-                    if case .increment = action {
-                        return true
-                    } else {
-                        return false
-                    }
-                }
-                .map { _ in .decrement(100) }
+        .publisher { actionPairPublisher in
+            actionPairPublisher
+                .filter(action: .increment(10))
+                .map(to: .decrement(100))
         }
     }
 }

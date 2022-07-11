@@ -1,10 +1,10 @@
 import Combine
 
 public struct Effect<S: State> {
-    let effect: (StateActionPairPublisher, @escaping Send) -> AnyCancellable
+    let effect: (ActionPairPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
-        publisher: @escaping (StateActionPairPublisher) -> P
+        publisher: @escaping (ActionPairPublisher) -> P
     ) where P.Output == S.Action, P.Failure == Never {
         effect = {
             publisher($0)
@@ -14,9 +14,9 @@ public struct Effect<S: State> {
     }
 
     public init(sender: @escaping (S, S.Action, @escaping Send) -> Void) {
-        effect = { stateActionPair, send in
-            stateActionPair.sink { state, action in
-                sender(state, action, send)
+        effect = { actionPairPublisher, send in
+            actionPairPublisher.sink { pair in
+                sender(pair.state, pair.action, send)
             }
         }
     }
@@ -29,19 +29,20 @@ public struct Effect<S: State> {
         }
     }
 
-    public init(sink: @escaping (StateActionPairPublisher) -> AnyCancellable) {
-        effect = { combineLatestPublisher, _ in
-            sink(combineLatestPublisher)
+    public init(sink: @escaping (ActionPairPublisher) -> AnyCancellable) {
+        effect = { actionPairPublisher, _ in
+            sink(actionPairPublisher)
         }
     }
 
-    public typealias StateActionPairPublisher = AnyPublisher<(S, S.Action), Never>
+    public typealias ActionPairPublisher = AnyPublisher<ActionPair<S>, Never>
+    // TODO: instead of passing a send maybe the publisher is merged with the Store's subject
     public typealias Send = (S.Action) -> Void
 }
 
 public extension Effect {
     static func publisher<P: Publisher>(
-        publisher: @escaping (StateActionPairPublisher) -> P
+        publisher: @escaping (ActionPairPublisher) -> P
     ) -> Self where P.Output == S.Action, P.Failure == Never {
         self.init(publisher: publisher)
     }
@@ -54,7 +55,7 @@ public extension Effect {
         self.init(sender: sender)
     }
 
-    static func sink(sink: @escaping (StateActionPairPublisher) -> AnyCancellable) -> Self {
+    static func sink(sink: @escaping (ActionPairPublisher) -> AnyCancellable) -> Self {
         self.init(sink: sink)
     }
 }

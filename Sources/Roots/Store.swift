@@ -37,7 +37,7 @@ private extension Store {
         effect: Effect<S>?,
         onUpdateState: ((S) -> Void)? = nil
     ) {
-        let stateActionPair = subject
+        let actionPairPublisher = subject
             .scan(state) { [weak self] previousState, action in
                 var nextState = previousState
                 nextState = reducer(&nextState, action)
@@ -48,10 +48,11 @@ private extension Store {
                 return nextState
             }
             .zip(subject)
+            .map(ActionPair.init(state:action:))
             .share()
 
         (effect ?? .noEffect)
-            .effect(stateActionPair.eraseToAnyPublisher()) { [weak self] action in
+            .effect(actionPairPublisher.eraseToAnyPublisher()) { [weak self] action in
                 self?.subject.send(action)
             }
             .store(in: &cancellables)
