@@ -8,5 +8,5 @@ public protocol ActionSender {
 }
 
 protocol ActionSubject: ActionSender {
-    var subject: PassthroughSubject<A, Never> { get }
+    var actionSubject: PassthroughSubject<A, Never> { get }
 }

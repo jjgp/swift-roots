@@ -3,7 +3,7 @@ import Combine
 public final class Store<S: State, A: Action>: ActionSubject {
     private(set) var cancellables: Set<AnyCancellable> = []
     @Published private(set) var state: S
-    let subject = PassthroughSubject<A, Never>()
+    let actionSubject = PassthroughSubject<A, Never>()
 
     public init(initialState: S,
                 reducer: @escaping Reducer<S, A>,
@@ -37,7 +37,7 @@ private extension Store {
         effect: Effect<S, A>?,
         onUpdateState: ((S) -> Void)? = nil
     ) {
-        let actionPairPublisher = subject
+        let transitionPublisher = actionSubject
             .scan(state) { [weak self] previousState, action in
                 var nextState = previousState
                 nextState = reducer(&nextState, action)
@@ -47,13 +47,13 @@ private extension Store {
                 }
                 return nextState
             }
-            .zip(subject)
+            .zip(actionSubject)
             .map(Transition.init(state:action:))
             .share()
 
         (effect ?? .noEffect)
-            .effect(actionPairPublisher.eraseToAnyPublisher()) { [weak self] action in
-                self?.subject.send(action)
+            .effect(transitionPublisher.eraseToAnyPublisher()) { [weak self] action in
+                self?.actionSubject.send(action)
             }
             .store(in: &cancellables)
     }
@@ -71,6 +71,6 @@ public extension Store {
 
 public extension Store {
     func send(_ action: A) {
-        subject.send(action)
+        actionSubject.send(action)
     }
 }
