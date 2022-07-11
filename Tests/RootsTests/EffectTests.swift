@@ -19,7 +19,7 @@ class EffectTests: XCTestCase {
 
     func testAsynchronousEffect() {
         let expect = expectation(description: "The value is decremented")
-        let effect = Effect<Count>(sender: { _, action, send in
+        let effect: Effect<Count> = .sender { _, action, send in
             try? await Task.sleep(nanoseconds: 100)
             if case .increment = action {
                 await MainActor.run {
@@ -28,7 +28,7 @@ class EffectTests: XCTestCase {
             } else if case .decrement = action {
                 expect.fulfill()
             }
-        })
+        }
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
@@ -106,15 +106,15 @@ class EffectTests: XCTestCase {
 
 private extension Effect where S == Count {
     static var senderEffect: Self {
-        Effect<Count>(sender: { _, action, send in
+        .sender { _, action, send in
             if case let .increment(value) = action {
                 send(.decrement(value))
             }
-        })
+        }
     }
 
     static func publisherEffect() -> Self {
-        Effect<Count>(publisher: { stateActionPair in
+        .publisher { stateActionPair in
             stateActionPair
                 .filter { _, action in
                     // TODO: make a convenience publisher like redux saga's takeEvery
@@ -125,6 +125,6 @@ private extension Effect where S == Count {
                     }
                 }
                 .map { _ in .decrement(100) }
-        })
+        }
     }
 }
