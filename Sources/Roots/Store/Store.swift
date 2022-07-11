@@ -13,9 +13,9 @@ public final class Store<S: State, A: Action>: ActionSubject {
         combine(state, reducer: reducer, effect: effect)
     }
 
-    init<Parent: State, T: Action>(
-        from keyPath: WritableKeyPath<Parent, S>,
-        on parent: Store<Parent, T>,
+    init<ParentS: State, ParentA: Action>(
+        from keyPath: WritableKeyPath<ParentS, S>,
+        on parent: Store<ParentS, ParentA>,
         reducer: @escaping Reducer<S, A>,
         effect: Effect<S, A>? = nil
     ) {
@@ -48,7 +48,7 @@ private extension Store {
                 return nextState
             }
             .zip(subject)
-            .map(ActionPair.init(state:action:))
+            .map(Transition.init(state:action:))
             .share()
 
         (effect ?? .noEffect)
@@ -60,12 +60,12 @@ private extension Store {
 }
 
 public extension Store {
-    func store<T: State, U: Action>(
-        from keyPath: WritableKeyPath<S, T>,
-        reducer: @escaping Reducer<T, U>,
-        effect: Effect<T, U>? = nil
-    ) -> Store<T, U> {
-        Store<T, U>(from: keyPath, on: self, reducer: reducer, effect: effect)
+    func store<ChildS: State, ChildA: Action>(
+        from keyPath: WritableKeyPath<S, ChildS>,
+        reducer: @escaping Reducer<ChildS, ChildA>,
+        effect: Effect<ChildS, ChildA>? = nil
+    ) -> Store<ChildS, ChildA> {
+        Store<ChildS, ChildA>(from: keyPath, on: self, reducer: reducer, effect: effect)
     }
 }
 

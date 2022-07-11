@@ -11,8 +11,5 @@ public protocol Saga {
 }
 
 extension Saga {
-    func run() async {
-        await take(.init(rawValue: "foobar")!)
-        put(.init(rawValue: "barbaz")!)
-    }
+    func run() async {}
 }

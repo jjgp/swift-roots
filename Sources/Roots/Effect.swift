@@ -1,10 +1,10 @@
 import Combine
 
 public struct Effect<S: State, A: Action> {
-    let effect: (ActionPairPublisher, @escaping Send) -> AnyCancellable
+    let effect: (TransitionPublisher, @escaping Send) -> AnyCancellable
 
     public init<P: Publisher>(
-        publisher: @escaping (ActionPairPublisher) -> P
+        publisher: @escaping (TransitionPublisher) -> P
     ) where P.Output == A, P.Failure == Never {
         effect = {
             publisher($0)
@@ -29,20 +29,20 @@ public struct Effect<S: State, A: Action> {
         }
     }
 
-    public init(sink: @escaping (ActionPairPublisher) -> AnyCancellable) {
+    public init(sink: @escaping (TransitionPublisher) -> AnyCancellable) {
         effect = { actionPairPublisher, _ in
             sink(actionPairPublisher)
         }
     }
 
-    public typealias ActionPairPublisher = AnyPublisher<ActionPair<S, A>, Never>
+    public typealias TransitionPublisher = AnyPublisher<Transition<S, A>, Never>
     // TODO: instead of passing a send maybe the publisher is merged with the Store's subject
     public typealias Send = (A) -> Void
 }
 
 public extension Effect {
     static func publisher<P: Publisher>(
-        publisher: @escaping (ActionPairPublisher) -> P
+        publisher: @escaping (TransitionPublisher) -> P
     ) -> Self where P.Output == A, P.Failure == Never {
         self.init(publisher: publisher)
     }
@@ -55,7 +55,7 @@ public extension Effect {
         self.init(sender: sender)
     }
 
-    static func sink(sink: @escaping (ActionPairPublisher) -> AnyCancellable) -> Self {
+    static func sink(sink: @escaping (TransitionPublisher) -> AnyCancellable) -> Self {
         self.init(sink: sink)
     }
 }
