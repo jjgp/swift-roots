@@ -1,24 +1,31 @@
 import Combine
 
-class PublisherSpy<P: Publisher> {
-    private var cancellable: AnyCancellable!
-    private(set) var failure: P.Failure?
+class PublisherSpy<Input, Failure: Error>: Subscriber {
+    private(set) var failure: Failure?
     private(set) var finished = false
-    private(set) var values: [P.Output] = []
+    private(set) var values: [Input] = []
+    private(set) var subscription: Subscription!
 
-    init(_ publisher: P) {
-        cancellable = publisher.sink(
-            receiveCompletion: { [weak self] completion in
-                switch completion {
-                case .finished:
-                    self?.finished = false
-                case let .failure(error):
-                    self?.failure = error
-                }
-            },
-            receiveValue: { [weak self] value in
-                self?.values.append(value)
-            }
-        )
+    init<P: Publisher>(_ publisher: P) where P.Output == Input, P.Failure == Failure {
+        publisher.subscribe(self)
+    }
+
+    func receive(subscription: Subscription) {
+        self.subscription = subscription
+        subscription.request(.unlimited)
+    }
+
+    func receive(_ input: Input) -> Subscribers.Demand {
+        values.append(input)
+        return .unlimited
+    }
+
+    func receive(completion: Subscribers.Completion<Failure>) {
+        switch completion {
+        case .finished:
+            finished = false
+        case let .failure(error):
+            failure = error
+        }
     }
 }
