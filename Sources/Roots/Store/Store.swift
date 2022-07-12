@@ -38,13 +38,13 @@ public final class Store<S: State, A: Action>: ActionSubject, Publisher {
 }
 
 public extension Store {
-    func scope<ChildState: State, ChildAction: Action>(
-        to keyPath: WritableKeyPath<S, ChildState>,
-        reducer: @escaping Reducer<ChildState, ChildAction>,
-        effect: Effect<ChildState, ChildAction>? = nil
-    ) -> Store<ChildState, ChildAction> {
+    func scope<StateInScope: State, ActionInScope: Action>(
+        to keyPath: WritableKeyPath<S, StateInScope>,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        effect: Effect<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> {
         let stateBinding = stateBinding.scope(keyPath)
-        return Store<ChildState, ChildAction>(stateBinding: stateBinding, reducer: reducer, effect: effect)
+        return Store<StateInScope, ActionInScope>(stateBinding: stateBinding, reducer: reducer, effect: effect)
     }
 }
 
@@ -55,12 +55,12 @@ public extension Store {
 }
 
 public extension Store {
-    typealias Output = S
-    typealias Failure = Never
-
     func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
         .Input
     {
         stateBinding.removeDuplicates().receive(subscriber: subscriber)
     }
+
+    typealias Failure = Never
+    typealias Output = S
 }

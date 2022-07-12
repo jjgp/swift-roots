@@ -3,7 +3,7 @@ import Combine
 struct StateBinding<S: State> {
     private let getState: () -> S
     private let setState: (S) -> Void
-    private let setSubscriber: (AnySubscriber<S, Never>) -> Void
+    private let statePublisher: AnyPublisher<S, Never>
     var wrappedState: S {
         get { getState() }
         nonmutating set { setState(newValue) }
@@ -12,11 +12,11 @@ struct StateBinding<S: State> {
     private init(
         getState: @escaping () -> S,
         setState: @escaping (S) -> Void,
-        setSubscriber: @escaping (AnySubscriber<S, Never>) -> Void
+        statePublisher: AnyPublisher<S, Never>
     ) {
         self.getState = getState
         self.setState = setState
-        self.setSubscriber = setSubscriber
+        self.statePublisher = statePublisher
     }
 }
 
@@ -26,7 +26,7 @@ extension StateBinding {
         self.init(
             getState: { subject.value },
             setState: { subject.value = $0 },
-            setSubscriber: { subject.receive(subscriber: $0) }
+            statePublisher: subject.eraseToAnyPublisher()
         )
     }
 }
@@ -35,7 +35,7 @@ extension StateBinding: Publisher {
     func receive<Subscriber: Combine.Subscriber>(
         subscriber: Subscriber
     ) where Failure == Subscriber.Failure, Output == Subscriber.Input {
-        setSubscriber(AnySubscriber(subscriber))
+        statePublisher.receive(subscriber: subscriber)
     }
 
     typealias Failure = Never
@@ -43,12 +43,11 @@ extension StateBinding: Publisher {
 }
 
 extension StateBinding {
-    func scope<ChildState: State>(_ keyPath: WritableKeyPath<S, ChildState>) -> StateBinding<ChildState> {
-        let mappedPublisher = map(keyPath)
-        return StateBinding<ChildState>(
+    func scope<StateInScope: State>(_ keyPath: WritableKeyPath<S, StateInScope>) -> StateBinding<StateInScope> {
+        StateBinding<StateInScope>(
             getState: { wrappedState[keyPath: keyPath] },
             setState: { wrappedState[keyPath: keyPath] = $0 },
-            setSubscriber: { mappedPublisher.receive(subscriber: $0) }
+            statePublisher: map(keyPath).eraseToAnyPublisher()
         )
     }
 }
