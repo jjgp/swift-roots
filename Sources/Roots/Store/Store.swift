@@ -13,9 +13,9 @@ public final class Store<S: State, A: Action>: ActionSubject {
         combine(state, reducer: reducer, effect: effect)
     }
 
-    init<ParentS: State, ParentA: Action>(
-        from keyPath: WritableKeyPath<ParentS, S>,
-        on parent: Store<ParentS, ParentA>,
+    init<ParentState: State, ParentAction: Action>(
+        from keyPath: WritableKeyPath<ParentState, S>,
+        on parent: Store<ParentState, ParentAction>,
         reducer: @escaping Reducer<S, A>,
         effect: Effect<S, A>? = nil
     ) {
@@ -60,12 +60,12 @@ private extension Store {
 }
 
 public extension Store {
-    func store<ChildS: State, ChildA: Action>(
-        from keyPath: WritableKeyPath<S, ChildS>,
-        reducer: @escaping Reducer<ChildS, ChildA>,
-        effect: Effect<ChildS, ChildA>? = nil
-    ) -> Store<ChildS, ChildA> {
-        Store<ChildS, ChildA>(from: keyPath, on: self, reducer: reducer, effect: effect)
+    func store<ChildState: State, ChildAction: Action>(
+        from keyPath: WritableKeyPath<S, ChildState>,
+        reducer: @escaping Reducer<ChildState, ChildAction>,
+        effect: Effect<ChildState, ChildAction>? = nil
+    ) -> Store<ChildState, ChildAction> {
+        Store<ChildState, ChildAction>(from: keyPath, on: self, reducer: reducer, effect: effect)
     }
 }
 
