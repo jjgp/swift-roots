@@ -1,5 +1,5 @@
 import Combine
-@testable import Roots
+import Roots
 import XCTest
 
 class StoreTests: XCTestCase {
