@@ -1,16 +1,15 @@
 import Combine
 
-public final class Store<S: State, A: Action>: ActionSubject, Publisher {
-    private(set) var cancellables: Set<AnyCancellable> = []
-    private var stateBinding: StateBinding<S>
-    let actionSubject = PassthroughSubject<A, Never>()
+public final class Store<S: State, A: Action>: Publisher {
+    private let actionSubject = PassthroughSubject<A, Never>()
+    private var cancellables: Set<AnyCancellable> = []
+    private let stateBinding: StateBinding<S>
 
     public convenience init(initialState: S,
                             reducer: @escaping Reducer<S, A>,
                             effect: Effect<S, A>? = nil)
     {
-        let stateBinding = StateBinding(initialState: initialState)
-        self.init(stateBinding: stateBinding, reducer: reducer, effect: effect)
+        self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
     }
 
     init(stateBinding: StateBinding<S>,
@@ -43,8 +42,11 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        let stateBinding = stateBinding.scope(keyPath)
-        return Store<StateInScope, ActionInScope>(stateBinding: stateBinding, reducer: reducer, effect: effect)
+        Store<StateInScope, ActionInScope>(
+            stateBinding: stateBinding.scope(keyPath),
+            reducer: reducer,
+            effect: effect
+        )
     }
 }
 
