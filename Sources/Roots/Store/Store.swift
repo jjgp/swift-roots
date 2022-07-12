@@ -18,11 +18,13 @@ public final class Store<S: State, A: Action>: ActionSubject, Publisher {
          effect: Effect<S, A>? = nil)
     {
         self.stateBinding = stateBinding
-        let transitionPublisher = stateBinding
-            .zip(actionSubject)
-            .map { previousState, action -> Transition<S, A> in
-                var nextState = previousState
-                stateBinding.wrappedState = reducer(&nextState, action)
+        let transitionPublisher = actionSubject
+            .map { action -> Transition<S, A> in
+                var nextState = stateBinding.wrappedState
+                nextState = reducer(&nextState, action)
+                if stateBinding.wrappedState != nextState {
+                    stateBinding.wrappedState = nextState
+                }
                 return Transition(state: nextState, action: action)
             }
             .share()
