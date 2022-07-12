@@ -1,54 +1,30 @@
 import Combine
 
-public final class Store<S: State, A: Action>: ActionSubject {
+public final class Store<S: State, A: Action>: ActionSubject, Publisher {
     private(set) var cancellables: Set<AnyCancellable> = []
-    @Published private(set) var state: S
+    private var stateBinding: StateBinding<S>
     let actionSubject = PassthroughSubject<A, Never>()
 
-    public init(initialState: S,
-                reducer: @escaping Reducer<S, A>,
-                effect: Effect<S, A>? = nil)
+    public convenience init(initialState: S,
+                            reducer: @escaping Reducer<S, A>,
+                            effect: Effect<S, A>? = nil)
     {
-        state = initialState
-        combine(state, reducer: reducer, effect: effect)
+        let stateBinding = StateBinding(initialState: initialState)
+        self.init(stateBinding: stateBinding, reducer: reducer, effect: effect)
     }
 
-    init<ParentState: State, ParentAction: Action>(
-        from keyPath: WritableKeyPath<ParentState, S>,
-        on parent: Store<ParentState, ParentAction>,
-        reducer: @escaping Reducer<S, A>,
-        effect: Effect<S, A>? = nil
-    ) {
-        // TODO: cache the children store and return it for subsequent calls. Would be ideal if
-        // it was weakly referenced... and/or share the $state reference. This may need to refactor
-        // away from using @Published?
-        state = parent.state[keyPath: keyPath]
-        combine(state, reducer: reducer, effect: effect) { [weak parent] nextState in
-            parent?.state[keyPath: keyPath] = nextState
-        }
-    }
-}
-
-private extension Store {
-    @inline(__always)
-    func combine(
-        _ state: S,
-        reducer: @escaping Reducer<S, A>,
-        effect: Effect<S, A>?,
-        onUpdateState: ((S) -> Void)? = nil
-    ) {
-        let transitionPublisher = actionSubject
-            .scan(state) { [weak self] previousState, action in
-                var nextState = previousState
-                nextState = reducer(&nextState, action)
-                if previousState != nextState {
-                    onUpdateState?(nextState)
-                    self?.state = nextState
-                }
-                return nextState
-            }
+    init(stateBinding: StateBinding<S>,
+         reducer: @escaping Reducer<S, A>,
+         effect: Effect<S, A>? = nil)
+    {
+        self.stateBinding = stateBinding
+        let transitionPublisher = stateBinding
             .zip(actionSubject)
-            .map(Transition.init(state:action:))
+            .map { previousState, action -> Transition<S, A> in
+                var nextState = previousState
+                stateBinding.wrappedState = reducer(&nextState, action)
+                return Transition(state: nextState, action: action)
+            }
             .share()
 
         (effect ?? .noEffect)
@@ -60,17 +36,29 @@ private extension Store {
 }
 
 public extension Store {
-    func store<ChildState: State, ChildAction: Action>(
-        from keyPath: WritableKeyPath<S, ChildState>,
+    func scope<ChildState: State, ChildAction: Action>(
+        to keyPath: WritableKeyPath<S, ChildState>,
         reducer: @escaping Reducer<ChildState, ChildAction>,
         effect: Effect<ChildState, ChildAction>? = nil
     ) -> Store<ChildState, ChildAction> {
-        Store<ChildState, ChildAction>(from: keyPath, on: self, reducer: reducer, effect: effect)
+        let stateBinding = stateBinding.scope(keyPath)
+        return Store<ChildState, ChildAction>(stateBinding: stateBinding, reducer: reducer, effect: effect)
     }
 }
 
 public extension Store {
     func send(_ action: A) {
         actionSubject.send(action)
+    }
+}
+
+public extension Store {
+    typealias Output = S
+    typealias Failure = Never
+
+    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
+        .Input
+    {
+        stateBinding.removeDuplicates().receive(subscriber: subscriber)
     }
 }

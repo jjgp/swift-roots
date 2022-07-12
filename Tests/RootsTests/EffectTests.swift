@@ -9,7 +9,7 @@ class EffectTests: XCTestCase {
             reducer: Count.reducer(state:action:),
             effect: .senderEffect
         )
-        let spy = PublisherSpy(store.$state)
+        let spy = PublisherSpy(store)
         store.send(.increment(10))
         store.send(.increment(20))
         store.send(.increment(40))
@@ -34,7 +34,7 @@ class EffectTests: XCTestCase {
             reducer: Count.reducer(state:action:),
             effect: effect
         )
-        let spy = PublisherSpy(store.$state)
+        let spy = PublisherSpy(store)
         store.send(.increment(10))
         wait(for: [expect], timeout: 1)
         let values = spy.values.map(\.count)
@@ -47,7 +47,7 @@ class EffectTests: XCTestCase {
             reducer: Count.reducer(state:action:),
             effect: .publisherEffect()
         )
-        let spy = PublisherSpy(store.$state)
+        let spy = PublisherSpy(store)
         store.send(.increment(10))
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -90])
@@ -55,19 +55,19 @@ class EffectTests: XCTestCase {
 
     func testEffectsOnChildrenStores() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
-        let pingStore = store.store(
-            from: \.ping,
+        let pingStore = store.scope(
+            to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: .senderEffect
         )
-        let pongStore = store.store(
-            from: \.pong,
+        let pongStore = store.scope(
+            to: \.pong,
             reducer: Count.reducer(state:action:),
             effect: .senderEffect
         )
-        let spy = PublisherSpy(store.$state)
-        let pingSpy = PublisherSpy(pingStore.$state)
-        let pongSpy = PublisherSpy(pongStore.$state)
+        let spy = PublisherSpy(store)
+        let pingSpy = PublisherSpy(pingStore)
+        let pongSpy = PublisherSpy(pongStore)
         pingStore.send(.increment(10))
         pongStore.send(.increment(10))
         pingStore.send(.increment(20))
