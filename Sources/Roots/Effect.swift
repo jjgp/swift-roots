@@ -1,10 +1,10 @@
 import Combine
 
-public func applyEffects<S: State, A: Action>(effects: Effect<S, A>...) -> Effect<S, A> {
-    applyEffects(effects: effects)
+public func apply<S: State, A: Action>(effects: Effect<S, A>...) -> Effect<S, A> {
+    apply(effects: effects)
 }
 
-public func applyEffects<S: State, A: Action>(effects: [Effect<S, A>]) -> Effect<S, A> {
+public func apply<S: State, A: Action>(effects: [Effect<S, A>]) -> Effect<S, A> {
     Effect(effect: { transitionPublisher, send in
         let cancellables = effects.map { $0.effect(transitionPublisher, send) }
         return AnyCancellable {
@@ -60,25 +60,25 @@ public struct Effect<S: State, A: Action> {
 }
 
 public extension Effect {
-    static func effect(effect: @escaping Effect) -> Self {
+    static func effect(_ effect: @escaping Effect) -> Self {
         self.init(effect: effect)
     }
 
     static func publisher<P: Publisher>(
-        publisher: @escaping (TransitionPublisher) -> P
+        _ publisher: @escaping (TransitionPublisher) -> P
     ) -> Self where P.Output == A, P.Failure == Never {
         self.init(publisher: publisher)
     }
 
-    static func sender(sender: @escaping (S, A, @escaping Send) -> Void) -> Self {
+    static func sender(_ sender: @escaping (S, A, @escaping Send) -> Void) -> Self {
         self.init(sender: sender)
     }
 
-    static func sender(sender: @escaping (S, A, @escaping Send) async -> Void) -> Self {
+    static func sender(_ sender: @escaping (S, A, @escaping Send) async -> Void) -> Self {
         self.init(sender: sender)
     }
 
-    static func sink(sink: @escaping (TransitionPublisher) -> AnyCancellable) -> Self {
+    static func sink(_ sink: @escaping (TransitionPublisher) -> AnyCancellable) -> Self {
         self.init(sink: sink)
     }
 }

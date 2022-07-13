@@ -159,4 +159,33 @@ class EffectTests: XCTestCase {
         XCTAssertEqual(pingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
         XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
     }
+
+    func testApplyEffects() {
+        let effects: [Effect<Count, Count.Action>] = [
+            .sender { state, action, send in
+                if state.count < 100, case let .increment(value) = action {
+                    send(.increment(100 - value))
+                }
+            },
+            .sender { state, _, send in
+                if state.count == 100 {
+                    send(.decrement(100))
+                }
+            },
+        ]
+
+        let store = Store(
+            initialState: Count(),
+            reducer: Count.reducer(state:action:),
+            effect: apply(effects: effects)
+        )
+        let spy = PublisherSpy(store)
+        store.send(.increment(1))
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 1, 100, 0])
+    }
+
+    func testEffectsDirectly() {
+        // TODO: come up with testing patter for testing the effects in abscence of a store
+    }
 }
