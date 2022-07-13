@@ -64,7 +64,7 @@ class EffectTests: XCTestCase {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let senderEffect: Effect<Count, Count.Action> = .sender { _, action, send in
             if case let .increment(value) = action {
-                send(.decrement(value))
+                send(.decrement(2 * value))
             }
         }
         let pingStore = store.scope(
@@ -86,6 +86,7 @@ class EffectTests: XCTestCase {
         pongStore.send(.increment(20))
         pingStore.send(.increment(40))
         pongStore.send(.increment(40))
+        store.send(.initialize)
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
         let pingValues = pingSpy.values.map(\.count)
         let pongValues = pongSpy.values.map(\.count)
@@ -94,21 +95,22 @@ class EffectTests: XCTestCase {
             [
                 "0, 0",
                 "10, 0",
-                "0, 0",
-                "0, 10",
-                "0, 0",
-                "20, 0",
-                "0, 0",
-                "0, 20",
-                "0, 0",
-                "40, 0",
-                "0, 0",
-                "0, 40",
+                "-10, 0",
+                "-10, 10",
+                "-10, -10",
+                "10, -10",
+                "-30, -10",
+                "-30, 10",
+                "-30, -30",
+                "10, -30",
+                "-70, -30",
+                "-70, 10",
+                "-70, -70",
                 "0, 0",
             ]
         )
-        XCTAssertEqual(pingValues, [0, 10, 0, 20, 0, 40, 0])
-        XCTAssertEqual(pongValues, [0, 10, 0, 20, 0, 40, 0])
+        XCTAssertEqual(pingValues, [0, 10, -10, 10, -30, 10, -70, 0])
+        XCTAssertEqual(pongValues, [0, 10, -10, 10, -30, 10, -70, 0])
     }
 
     func testTwinChildrenStates() {
