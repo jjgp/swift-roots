@@ -7,7 +7,11 @@ class EffectTests: XCTestCase {
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            effect: .senderEffect
+            effect: .sender { _, action, send in
+                if case let .increment(value) = action {
+                    send(.decrement(value))
+                }
+            }
         )
         let spy = PublisherSpy(store)
         store.send(.increment(10))
@@ -20,7 +24,6 @@ class EffectTests: XCTestCase {
     func testAsynchronousEffect() {
         let expect = expectation(description: "The value is decremented")
         let effect: Effect<Count, Count.Action> = .sender { _, action, send in
-            try? await Task.sleep(nanoseconds: 100)
             if case .increment = action {
                 await MainActor.run {
                     send(.decrement(100))
@@ -45,7 +48,11 @@ class EffectTests: XCTestCase {
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            effect: .publisherEffect()
+            effect: .publisher { actionPairPublisher in
+                actionPairPublisher
+                    .filter(action: .increment(10))
+                    .map(to: .decrement(100))
+            }
         )
         let spy = PublisherSpy(store)
         store.send(.increment(10))
@@ -55,15 +62,20 @@ class EffectTests: XCTestCase {
 
     func testEffectsOnChildrenStores() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let senderEffect: Effect<Count, Count.Action> = .sender { _, action, send in
+            if case let .increment(value) = action {
+                send(.decrement(value))
+            }
+        }
         let pingStore = store.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: .senderEffect
+            effect: senderEffect
         )
         let pongStore = store.scope(
             to: \.pong,
             reducer: Count.reducer(state:action:),
-            effect: .senderEffect
+            effect: senderEffect
         )
         let spy = PublisherSpy(store)
         let pingSpy = PublisherSpy(pingStore)
@@ -101,23 +113,5 @@ class EffectTests: XCTestCase {
 
     func testTwinChildrenStates() {
         // TODO: this is not currently supported
-    }
-}
-
-private extension Effect where S == Count, A == Count.Action {
-    static var senderEffect: Self {
-        .sender { _, action, send in
-            if case let .increment(value) = action {
-                send(.decrement(value))
-            }
-        }
-    }
-
-    static func publisherEffect() -> Self {
-        .publisher { actionPairPublisher in
-            actionPairPublisher
-                .filter(action: .increment(10))
-                .map(to: .decrement(100))
-        }
     }
 }
