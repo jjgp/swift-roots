@@ -37,6 +37,17 @@ public final class Store<S: State, A: Action>: Publisher {
 }
 
 public extension Store {
+    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
+        .Input
+    {
+        stateBinding.removeDuplicates().receive(subscriber: subscriber)
+    }
+
+    typealias Failure = Never
+    typealias Output = S
+}
+
+public extension Store {
     func scope<StateInScope: State, ActionInScope: Action>(
         to keyPath: WritableKeyPath<S, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
@@ -54,15 +65,4 @@ public extension Store {
     func send(_ action: A) {
         actionSubject.send(action)
     }
-}
-
-public extension Store {
-    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
-        .Input
-    {
-        stateBinding.removeDuplicates().receive(subscriber: subscriber)
-    }
-
-    typealias Failure = Never
-    typealias Output = S
 }
