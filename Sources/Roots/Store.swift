@@ -28,11 +28,12 @@ public final class Store<S: State, A: Action>: Publisher {
             }
             .share()
 
-        (effect ?? .noEffect)
-            .effect(transitionPublisher.eraseToAnyPublisher()) { [weak self] action in
-                self?.actionSubject.send(action)
-            }
-            .store(in: &cancellables)
+        if let effect = effect?.effect {
+            effect(transitionPublisher.eraseToAnyPublisher(), actionSubject.send(_:))
+                .store(in: &cancellables)
+        } else {
+            transitionPublisher.ignoreOutput().sink { _ in }.store(in: &cancellables)
+        }
     }
 }
 

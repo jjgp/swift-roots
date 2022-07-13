@@ -50,8 +50,8 @@ class EffectTests: XCTestCase {
             reducer: Count.reducer(state:action:),
             effect: .publisher { actionPairPublisher in
                 actionPairPublisher
-                    .filter(action: .increment(10))
-                    .map(to: .decrement(100))
+                    .filter { $0.action == .increment(10) }
+                    .map { _ in .decrement(100) }
             }
         )
         let spy = PublisherSpy(store)
