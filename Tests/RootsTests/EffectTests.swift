@@ -60,7 +60,7 @@ class EffectTests: XCTestCase {
         XCTAssertEqual(values, [0, 10, -90])
     }
 
-    func testEffectsOnChildrenStores() {
+    func testEffectsOnStoresInScope() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let senderEffect: Effect<Count, Count.Action> = .sender { _, action, send in
             if case let .increment(value) = action {
@@ -113,7 +113,50 @@ class EffectTests: XCTestCase {
         XCTAssertEqual(pongValues, [0, 10, -10, 10, -30, 10, -70, 0])
     }
 
-    func testTwinChildrenStates() {
-        // TODO: this is not currently supported
+    func testTwinStoresInScope() {
+        let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let senderEffect: Effect<Count, Count.Action> = .sender { _, action, send in
+            if case let .increment(value) = action {
+                send(.decrement(2 * value))
+            }
+        }
+        let pingStore = store.scope(
+            to: \.ping,
+            reducer: Count.reducer(state:action:),
+            effect: senderEffect
+        )
+        let twinPingStore = store.scope(
+            to: \.ping,
+            reducer: Count.reducer(state:action:),
+            effect: senderEffect
+        )
+        let spy = PublisherSpy(store)
+        let pingSpy = PublisherSpy(pingStore)
+        let twinPingSpy = PublisherSpy(twinPingStore)
+        pingStore.send(.increment(10))
+        twinPingStore.send(.increment(10))
+        pingStore.send(.increment(20))
+        twinPingStore.send(.increment(20))
+        store.send(.initialize)
+        let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingValues = pingSpy.values.map(\.count)
+        let twinPingValues = twinPingSpy.values.map(\.count)
+        XCTAssertEqual(
+            values,
+            [
+                "0, 0",
+                "10, 0",
+                "-10, 0",
+                "0, 0",
+                "-20, 0",
+                "0, 0",
+                "-40, 0",
+                "-20, 0",
+                "-60, 0",
+                "0, 0",
+            ]
+        )
+        XCTAssertEqual(pingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
+        XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
     }
 }
