@@ -1,5 +1,7 @@
 import Combine
 
+// TODO: Effects with environment
+
 public func apply<S: State, A: Action>(effects: Effect<S, A>...) -> Effect<S, A> {
     apply(effects: effects)
 }
