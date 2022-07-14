@@ -48,8 +48,8 @@ class EffectTests: XCTestCase {
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            effect: .publisher { actionPairPublisher in
-                actionPairPublisher
+            effect: .publisher { transitionPublisher in
+                transitionPublisher
                     .filter { $0.action == .increment(10) }
                     .map { _ in .decrement(100) }
             }
@@ -177,7 +177,7 @@ class EffectTests: XCTestCase {
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            effect: apply(effects: effects)
+            effect: combine(effects: effects)
         )
         let spy = PublisherSpy(store)
         store.send(.increment(1))

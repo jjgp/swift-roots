@@ -1,22 +1,5 @@
 import Combine
 
-// TODO: Effects with environment
-
-public func apply<S: State, A: Action>(effects: Effect<S, A>...) -> Effect<S, A> {
-    apply(effects: effects)
-}
-
-public func apply<S: State, A: Action>(effects: [Effect<S, A>]) -> Effect<S, A> {
-    Effect(effect: { transitionPublisher, send in
-        let cancellables = effects.map { $0.effect(transitionPublisher, send) }
-        return AnyCancellable {
-            cancellables.forEach {
-                $0.cancel()
-            }
-        }
-    })
-}
-
 public struct Effect<S: State, A: Action> {
     let effect: Effect
 
@@ -35,8 +18,8 @@ public struct Effect<S: State, A: Action> {
     }
 
     public init(sender: @escaping (S, A, @escaping Send) -> Void) {
-        effect = { actionPairPublisher, send in
-            actionPairPublisher.sink { pair in
+        effect = { transitionPublisher, send in
+            transitionPublisher.sink { pair in
                 sender(pair.state, pair.action, send)
             }
         }
@@ -51,8 +34,8 @@ public struct Effect<S: State, A: Action> {
     }
 
     public init(sink: @escaping (TransitionPublisher) -> AnyCancellable) {
-        effect = { actionPairPublisher, _ in
-            sink(actionPairPublisher)
+        effect = { transitionPublisher, _ in
+            sink(transitionPublisher)
         }
     }
 
@@ -83,4 +66,8 @@ public extension Effect {
     static func sink(_ sink: @escaping (TransitionPublisher) -> AnyCancellable) -> Self {
         self.init(sink: sink)
     }
+}
+
+public extension Effect {
+    // TODO: creators for effect in environment
 }
