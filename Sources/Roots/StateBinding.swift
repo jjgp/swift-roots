@@ -5,8 +5,12 @@ struct StateBinding<S: State> {
     private let setState: (S) -> Void
     private let statePublisher: AnyPublisher<S, Never>
     var wrappedState: S {
-        get { getState() }
-        nonmutating set { setState(newValue) }
+        get {
+            getState()
+        }
+        nonmutating set {
+            setState(newValue)
+        }
     }
 
     private init(
@@ -24,7 +28,9 @@ extension StateBinding {
     init(initialState: S) {
         let subject = CurrentValueSubject<S, Never>(initialState)
         self.init(
-            getState: { subject.value },
+            getState: {
+                subject.value
+            },
             setState: { newState in
                 subject.value = newState
             },
@@ -47,7 +53,9 @@ extension StateBinding: Publisher {
 extension StateBinding {
     func scope<StateInScope: State>(_ keyPath: WritableKeyPath<S, StateInScope>) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
-            getState: { wrappedState[keyPath: keyPath] },
+            getState: {
+                wrappedState[keyPath: keyPath]
+            },
             setState: { newState in
                 wrappedState[keyPath: keyPath] = newState
             },

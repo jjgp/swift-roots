@@ -3,62 +3,6 @@ import Roots
 import XCTest
 
 class EffectTests: XCTestCase {
-    func testSynchronousEffect() {
-        let store = Store(
-            initialState: Count(),
-            reducer: Count.reducer(state:action:),
-            effect: .subject { _, action, send in
-                if case let .increment(value) = action {
-                    send(.decrement(value))
-                }
-            }
-        )
-        let spy = PublisherSpy(store)
-        store.send(.increment(10))
-        store.send(.increment(20))
-        store.send(.increment(40))
-        let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, 0, 20, 0, 40, 0])
-    }
-
-    func testAsynchronousEffect() {
-        let expect = expectation(description: "The value is decremented")
-        let store = Store(
-            initialState: Count(),
-            reducer: Count.reducer(state:action:),
-            effect: .subject { _, action, send in
-                if case .increment = action {
-                    await MainActor.run {
-                        send(.decrement(100))
-                    }
-                } else if case .decrement = action {
-                    expect.fulfill()
-                }
-            }
-        )
-        let spy = PublisherSpy(store)
-        store.send(.increment(10))
-        wait(for: [expect], timeout: 1)
-        let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, -90])
-    }
-
-    func testPublisherEffect() {
-        let store = Store(
-            initialState: Count(),
-            reducer: Count.reducer(state:action:),
-            effect: .publisher { transitionPublisher in
-                transitionPublisher
-                    .filter { $0.action == .increment(10) }
-                    .map { _ in .decrement(100) }
-            }
-        )
-        let spy = PublisherSpy(store)
-        store.send(.increment(10))
-        let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, -90])
-    }
-
     func testEffectsOnStoresInScope() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
@@ -159,32 +103,7 @@ class EffectTests: XCTestCase {
         XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
     }
 
-    func testApplyEffects() {
-        let effects: [Effect<Count, Count.Action>] = [
-            .subject { state, action, send in
-                if state.count < 100, case let .increment(value) = action {
-                    send(.increment(100 - value))
-                }
-            },
-            .subject { state, _, send in
-                if state.count == 100 {
-                    send(.decrement(100))
-                }
-            },
-        ]
-
-        let store = Store(
-            initialState: Count(),
-            reducer: Count.reducer(state:action:),
-            effect: combine(effects: effects)
-        )
-        let spy = PublisherSpy(store)
-        store.send(.increment(1))
-        let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 1, 100, 0])
-    }
-
     func testEffectsDirectly() {
-        // TODO: come up with testing patter for testing the effects in abscence of a store
+        // TODO: come up with testing pattern for testing the effects in abscence of a store
     }
 }
