@@ -27,9 +27,7 @@ public extension Effect {
 
     static func subject<Environment>(of environment: Environment, effect: @escaping AsyncSubjectEffectOfEnvironment<Environment>) -> Self {
         self.subject { state, action, send in
-            Task {
-                await effect(state, action, send, environment)
-            }
+            await effect(state, action, send, environment)
         }
     }
 
