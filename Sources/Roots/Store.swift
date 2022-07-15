@@ -26,15 +26,14 @@ public final class Store<S: State, A: Action>: Publisher {
                 }
                 return Transition(state: nextState, action: action)
             }
-            .multicast { PassthroughSubject() }
 
         if let effect = effect {
-            effect.apply(transitionPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
+            let multicastPublisher = transitionPublisher.multicast { PassthroughSubject() }
+            effect.apply(multicastPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
+            multicastPublisher.connect().store(in: &cancellables)
         } else {
             transitionPublisher.ignoreOutput().sink { _ in }.store(in: &cancellables)
         }
-
-        transitionPublisher.connect().store(in: &cancellables)
     }
 }
 

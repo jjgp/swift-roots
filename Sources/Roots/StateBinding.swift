@@ -25,7 +25,9 @@ extension StateBinding {
         let subject = CurrentValueSubject<S, Never>(initialState)
         self.init(
             getState: { subject.value },
-            setState: { subject.value = $0 },
+            setState: { newState in
+                subject.value = newState
+            },
             statePublisher: subject.eraseToAnyPublisher()
         )
     }
@@ -46,7 +48,9 @@ extension StateBinding {
     func scope<StateInScope: State>(_ keyPath: WritableKeyPath<S, StateInScope>) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: { wrappedState[keyPath: keyPath] },
-            setState: { wrappedState[keyPath: keyPath] = $0 },
+            setState: { newState in
+                wrappedState[keyPath: keyPath] = newState
+            },
             statePublisher: map(keyPath).eraseToAnyPublisher()
         )
     }

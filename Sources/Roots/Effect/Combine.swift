@@ -6,6 +6,8 @@ public func combine<S: State, A: Action>(effects: Effect<S, A>...) -> Effect<S, 
 
 public func combine<S: State, A: Action>(effects: [Effect<S, A>]) -> Effect<S, A> {
     .effect { transitionPublisher in
-        effects.map { $0.createEffect(transitionPublisher) }.flatMap { $0 }
+        effects.flatMap { effect in
+            effect.createEffect(transitionPublisher)
+        }
     }
 }
