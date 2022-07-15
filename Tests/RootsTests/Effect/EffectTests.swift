@@ -2,8 +2,18 @@ import Combine
 import Roots
 import XCTest
 
+class ApplyEffectTests: XCTestCase {}
+
+class CreateEffectTests: XCTestCase {}
+
 class EffectTests: XCTestCase {
-    func testEffectsOnStoresInScope() {
+    func testEffectsDirectly() {
+        // TODO: come up with testing pattern for testing the effects in abscence of a store
+    }
+}
+
+class EffectInScopeTests: XCTestCase {
+    func testEffectsOfStoresInScope() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
@@ -56,7 +66,7 @@ class EffectTests: XCTestCase {
         XCTAssertEqual(pongValues, [0, 10, -10, 10, -30, 10, -70, 0])
     }
 
-    func testTwinStoresInScope() {
+    func testEffectsOfTwinStoresInScope() {
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
@@ -101,9 +111,5 @@ class EffectTests: XCTestCase {
         )
         XCTAssertEqual(pingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
         XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
-    }
-
-    func testEffectsDirectly() {
-        // TODO: come up with testing pattern for testing the effects in abscence of a store
     }
 }
