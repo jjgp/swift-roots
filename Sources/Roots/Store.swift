@@ -29,8 +29,7 @@ public final class Store<S: State, A: Action>: Publisher {
             .multicast { PassthroughSubject() }
 
         if let effect = effect {
-            // TODO: rename this to something
-            effect.createEffect(transitionPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
+            effect.apply(transitionPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
         } else {
             transitionPublisher.ignoreOutput().sink { _ in }.store(in: &cancellables)
         }

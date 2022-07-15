@@ -22,39 +22,36 @@ class EffectTests: XCTestCase {
     }
 
     func testAsynchronousEffect() {
-//        let expect = expectation(description: "The value is decremented")
-//        let effect: Effect<Count, Count.Action> = .subject { _, action, send async in
-//            if case .increment = action {
-//                await MainActor.run {
-//                    send(.decrement(100))
-//                }
-//            } else if case .decrement = action {
-//                expect.fulfill()
-//            }
-//        }
-//        let store = Store(
-//            initialState: Count(),
-//            reducer: Count.reducer(state:action:),
-//            effect: effect
-//        )
-//        let spy = PublisherSpy(store)
-//        store.send(.increment(10))
-//        wait(for: [expect], timeout: 1)
-//        let values = spy.values.map(\.count)
-//        XCTAssertEqual(values, [0, 10, -90])
-    }
-
-    func testPublisherEffect() {
-        // TODO: clean this up
-        let effect: Effect<Count, Count.Action> = .effect { transitionPublisher in
-            .publisher(transitionPublisher
-                .filter { $0.action == .increment(10) }
-                .map { _ in .decrement(100) }.eraseToAnyPublisher())
-        }
+        let expect = expectation(description: "The value is decremented")
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            effect: effect
+            effect: .subject { _, action, send in
+                if case .increment = action {
+                    await MainActor.run {
+                        send(.decrement(100))
+                    }
+                } else if case .decrement = action {
+                    expect.fulfill()
+                }
+            }
+        )
+        let spy = PublisherSpy(store)
+        store.send(.increment(10))
+        wait(for: [expect], timeout: 1)
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 10, -90])
+    }
+
+    func testPublisherEffect() {
+        let store = Store(
+            initialState: Count(),
+            reducer: Count.reducer(state:action:),
+            effect: .publisher { transitionPublisher in
+                transitionPublisher
+                    .filter { $0.action == .increment(10) }
+                    .map { _ in .decrement(100) }
+            }
         )
         let spy = PublisherSpy(store)
         store.send(.increment(10))
@@ -163,28 +160,28 @@ class EffectTests: XCTestCase {
     }
 
     func testApplyEffects() {
-//        let effects: [Effect<Count, Count.Action>] = [
-//            .subject { state, action, send in
-//                if state.count < 100, case let .increment(value) = action {
-//                    send(.increment(100 - value))
-//                }
-//            },
-//            .subject { state, _, send in
-//                if state.count == 100 {
-//                    send(.decrement(100))
-//                }
-//            },
-//        ]
-//
-//        let store = Store(
-//            initialState: Count(),
-//            reducer: Count.reducer(state:action:),
-//            effect: combine(effects: effects)
-//        )
-//        let spy = PublisherSpy(store)
-//        store.send(.increment(1))
-//        let values = spy.values.map(\.count)
-//        XCTAssertEqual(values, [0, 1, 100, 0])
+        let effects: [Effect<Count, Count.Action>] = [
+            .subject { state, action, send in
+                if state.count < 100, case let .increment(value) = action {
+                    send(.increment(100 - value))
+                }
+            },
+            .subject { state, _, send in
+                if state.count == 100 {
+                    send(.decrement(100))
+                }
+            },
+        ]
+
+        let store = Store(
+            initialState: Count(),
+            reducer: Count.reducer(state:action:),
+            effect: combine(effects: effects)
+        )
+        let spy = PublisherSpy(store)
+        store.send(.increment(1))
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 1, 100, 0])
     }
 
     func testEffectsDirectly() {

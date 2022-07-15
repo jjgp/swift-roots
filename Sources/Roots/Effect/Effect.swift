@@ -1,52 +1,53 @@
 import Combine
 
 public struct Effect<S: State, A: Action> {
-    private let createEffect: CreateEffect
+    let createEffect: CreateEffect
 
     public init(createEffect: @escaping CreateEffect) {
         self.createEffect = createEffect
     }
 
-    public init<P: Publisher>(publisher: P) where P.Output == A, P.Failure == Never {
-        createEffect = { _ in .publisher(publisher.eraseToAnyPublisher()) }
-    }
-
-    public enum Artifacts {
-        case both(AnyCancellable, AnyPublisher<A, Never>)
+    public enum Artifact {
         case cancellable(AnyCancellable)
-        case none // TODO: this is if the artifiacts should be managed outside of the store lifecycle
         case publisher(AnyPublisher<A, Never>)
     }
 
-    public typealias CreateEffect = (TransitionPublisher) -> Artifacts
+    // TODO: should this be an array of artifacts to be managed?
+    public typealias CreateEffect = (TransitionPublisher) -> [Artifact]
     public typealias TransitionPublisher = AnyPublisher<Transition<S, A>, Never>
 }
 
-extension Effect.Artifacts {
-    var artifacts: (AnyCancellable?, AnyPublisher<A, Never>?) {
-        switch self {
-        case let .both(cancellable, publisher):
-            return (cancellable, publisher)
-        case let .cancellable(cancellable):
-            return (cancellable, nil)
-        case let .publisher(publisher):
-            return (nil, publisher)
-        case .none:
-            return (nil, nil)
-        }
+public extension AnyCancellable {
+    func toEffectArtifact<S: State, A: Action>() -> Effect<S, A>.Artifact {
+        .cancellable(self)
+    }
+}
+
+public extension Publisher {
+    func toEffectArtifact<S: State, A: Action>() -> Effect<S, A>.Artifact where Self.Output == A, Self.Failure == Never {
+        .publisher(eraseToAnyPublisher())
     }
 }
 
 extension Effect {
-    func createEffect(
+    func apply(
         _ transitionPublisher: TransitionPublisher,
         _ send: @escaping Send,
         _ collection: inout Set<AnyCancellable>
     ) {
-        let (cancellable, publisher) = createEffect(transitionPublisher).artifacts
-        publisher?.sink(receiveValue: send).store(in: &collection)
-        cancellable?.store(in: &collection)
+        var publishers = [AnyPublisher<A, Never>]()
+        for artifact in createEffect(transitionPublisher) {
+            switch artifact {
+            case let .cancellable(cancellable):
+                cancellable.store(in: &collection)
+            case let .publisher(publisher):
+                publishers.append(publisher)
+            }
+        }
+        Publishers.MergeMany(publishers).sink(receiveValue: send).store(in: &collection)
     }
+
+    public typealias Send = (A) -> Void
 }
 
 public extension Effect {
@@ -58,26 +59,55 @@ public extension Effect {
         of environment: Environment,
         createEffectOfEnvironment: @escaping CreateEffectOfEnvironment<Environment>
     ) -> Self {
-        effect { transitionPublisher in
+        self.init { transitionPublisher in
             createEffectOfEnvironment(transitionPublisher, environment)
         }
     }
 
-    static func effect<P: Publisher>(publisher: P) -> Self where P.Output == A, P.Failure == Never {
-        self.init(publisher: publisher)
-    }
-
-    typealias CreateEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> Artifacts
+    typealias CreateEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> [Artifact]
 }
 
 public extension Effect {
-    static func subject(subjectEffect: @escaping SubjectEffect) -> Self {
-        effect { transitionPublisher in
+    static func publisher<P: Publisher>(
+        _ effect: @escaping PublisherEffect<P>
+    ) -> Self where P.Output == A, P.Failure == Never {
+        self.effect { transitionPublisher in [effect(transitionPublisher).toEffectArtifact()] }
+    }
+
+    static func publisher<P: Publisher, Environment>(
+        of environment: Environment,
+        _ effect: @escaping PublisherEffectOfEnvironment<P, Environment>
+    ) -> Self where P.Output == A, P.Failure == Never {
+        self.effect(of: environment) { transitionPublisher, environment in
+            [effect(transitionPublisher, environment).toEffectArtifact()]
+        }
+    }
+
+    typealias PublisherEffect<P: Publisher> = (TransitionPublisher) -> P
+    typealias PublisherEffectOfEnvironment<P: Publisher, Environment> = (TransitionPublisher, Environment) -> P
+}
+
+public extension Effect {
+    static func subject(_ effect: @escaping SubjectEffect) -> Self {
+        self.effect { transitionPublisher in
             let subject = PassthroughSubject<A, Never>()
             let cancellable = transitionPublisher.sink { transition in
-                subjectEffect(transition.state, transition.action, subject.send)
+                effect(transition.state, transition.action, subject.send)
             }
-            return .both(cancellable, subject.eraseToAnyPublisher())
+            return [cancellable.toEffectArtifact(), subject.toEffectArtifact()]
+        }
+    }
+
+    static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
+        // TODO: probably opportunity to reduce repeated code
+        self.effect { transitionPublisher in
+            let subject = PassthroughSubject<A, Never>()
+            let cancellable = transitionPublisher.sink { transition in
+                Task {
+                    await effect(transition.state, transition.action, subject.send)
+                }
+            }
+            return [cancellable.toEffectArtifact(), subject.toEffectArtifact()]
         }
     }
 
@@ -85,22 +115,41 @@ public extension Effect {
         fatalError()
     }
 
-    typealias Send = (A) -> Void
     typealias SubjectEffect = (S, A, Send) -> Void
     typealias AsyncSubjectEffect = (S, A, Send) async -> Void
 }
 
 public extension Effect {
     static func sink(_ effect: @escaping SinkEffect) -> Self {
-        self.effect { transitionPublisher in .cancellable(effect(transitionPublisher)) }
+        self.effect { transitionPublisher in [effect(transitionPublisher).toEffectArtifact()] }
     }
 
     static func sink<Environment>(of environment: Environment, _ effect: @escaping SinkEffectOfEnvironment<Environment>) -> Self {
         self.effect(of: environment) { transitionPublisher, environment in
-            .cancellable(effect(transitionPublisher, environment))
+            [effect(transitionPublisher, environment).toEffectArtifact()]
         }
     }
 
     typealias SinkEffect = (TransitionPublisher) -> AnyCancellable
     typealias SinkEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> AnyCancellable
+}
+
+public extension Effect {
+    // TODO: test these
+    static func void(_ effect: @escaping VoidEffect) -> Self {
+        self.effect { transitionPublisher in
+            effect(transitionPublisher)
+            return []
+        }
+    }
+
+    static func void<Environment>(of environment: Environment, _ effect: @escaping VoidEffectOfEnvironment<Environment>) -> Self {
+        self.effect(of: environment) { transitionPublisher, environment in
+            effect(transitionPublisher, environment)
+            return []
+        }
+    }
+
+    typealias VoidEffect = (TransitionPublisher) -> Void
+    typealias VoidEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> Void
 }
