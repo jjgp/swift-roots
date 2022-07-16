@@ -2,9 +2,13 @@ import Combine
 import Roots
 import XCTest
 
-class ApplyEffectTests: XCTestCase {}
+class ApplyEffectTests: XCTestCase {
+    // TODO: test application of effect with transitions, subject, collection for cancellables
+}
 
-class CreateEffectTests: XCTestCase {}
+class CreateEffectTests: XCTestCase {
+    // TODO: test static create effect methods
+}
 
 class EffectTests: XCTestCase {
     func testEffectsDirectly() {
