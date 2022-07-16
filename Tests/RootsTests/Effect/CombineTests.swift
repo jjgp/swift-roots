@@ -34,7 +34,7 @@ class CombineEffectTests: XCTestCase {
         // When sending any value
         store.send(.increment(1))
 
-        // It's expected to see the values incremented to 100 and subsequently decremented to 0
+        // Then it's expected to see the values incremented to 100 and subsequently decremented to 0
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 1, 100, 0])
     }
