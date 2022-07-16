@@ -3,6 +3,7 @@ import XCTest
 
 class SubjectEffectTests: XCTestCase {
     func testSubjectEffect() {
+        // Given a store with a subject effect that decrements any incremented value
         let store = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
@@ -13,14 +14,21 @@ class SubjectEffectTests: XCTestCase {
             }
         )
         let spy = PublisherSpy(store)
+
+        // When sending any increments
         store.send(.increment(10))
         store.send(.increment(20))
         store.send(.increment(40))
+        // This action should be unaffected
+        store.send(.decrement(40))
+
+        // Then those increments should be decremented back to 0
         let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, 0, 20, 0, 40, 0])
+        XCTAssertEqual(values, [0, 10, 0, 20, 0, 40, 0, -40])
     }
 
     func testSubjectOfEnvironmentEffect() {
+        // Given a store with a subject effect that decrements any incremented value by an environment specified multiple
         struct Environment {
             let multiplier = 2
         }
@@ -35,14 +43,21 @@ class SubjectEffectTests: XCTestCase {
             }
         )
         let spy = PublisherSpy(store)
+
+        // When sending any increments
         store.send(.increment(10))
         store.send(.increment(20))
         store.send(.increment(40))
+        // This action should be unaffected
+        store.send(.decrement(40))
+
+        // Then those increments should be decremented by the multiplied amount
         let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, -10, 10, -30, 10, -70])
+        XCTAssertEqual(values, [0, 10, -10, 10, -30, 10, -70, -110])
     }
 
     func testAsyncSubjectEffect() {
+        // Given a store with a async subject effect that decrements any increment by 100
         let expect = expectation(description: "The value is decremented")
         let store = Store(
             initialState: Count(),
@@ -58,15 +73,20 @@ class SubjectEffectTests: XCTestCase {
             }
         )
         let spy = PublisherSpy(store)
+
+        // When sending any increment
         store.send(.increment(10))
+
+        // Then the increment should be decremented by 100
         wait(for: [expect], timeout: 1)
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -90])
     }
 
     func testAsyncSubjectEffectOfEnvironment() {
+        // Given a store with a async subject effect that decrements any increment by and environment specified value
         struct Environment {
-            let multiplier = 2
+            let decrementValue = 100
         }
         let environment = Environment()
         let expect = expectation(description: "The value is decremented")
@@ -76,7 +96,7 @@ class SubjectEffectTests: XCTestCase {
             effect: .subject(of: environment) { _, action, send, environment in
                 if case .increment = action {
                     await MainActor.run {
-                        send(.decrement(environment.multiplier * 100))
+                        send(.decrement(environment.decrementValue))
                     }
                 } else if case .decrement = action {
                     expect.fulfill()
@@ -84,9 +104,13 @@ class SubjectEffectTests: XCTestCase {
             }
         )
         let spy = PublisherSpy(store)
+
+        // When sending any increment
         store.send(.increment(10))
+
+        // Then the increment should be decremented by the environment value
         wait(for: [expect], timeout: 1)
         let values = spy.values.map(\.count)
-        XCTAssertEqual(values, [0, 10, -190])
+        XCTAssertEqual(values, [0, 10, -90])
     }
 }
