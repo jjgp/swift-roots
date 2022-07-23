@@ -11,3 +11,19 @@ public func combine<S: State, A: Action>(effects: [Effect<S, A>]) -> Effect<S, A
         }
     }
 }
+
+public func combine<S: State, A: Action, Environment>(
+    environment: Environment,
+    with dependentEffectsofEnvironment: (Environment) -> Effect<S, A>...
+) -> Effect<S, A> {
+    combine(environment: environment, with: dependentEffectsofEnvironment)
+}
+
+public func combine<S: State, A: Action, Environment>(
+    environment: Environment,
+    with dependentEffectsOfEnvironment: [(Environment) -> Effect<S, A>]
+) -> Effect<S, A> {
+    combine(effects: dependentEffectsOfEnvironment.map {
+        $0(environment)
+    })
+}
