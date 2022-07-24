@@ -23,7 +23,7 @@ public func combine<S: State, A: Action, Context>(
     context: Context,
     with contextEffects: [ContextEffect<S, A, Context>]
 ) -> Effect<S, A> {
-    combine(context: contextEffects.map {
+    combine(effects: contextEffects.map {
         $0.createEffect(context)
     })
 }
