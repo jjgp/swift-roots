@@ -48,20 +48,3 @@ extension Effect {
 
     public typealias Send = (A) -> Void
 }
-
-public extension Effect {
-    static func effect(createEffect: @escaping CreateEffect) -> Self {
-        self.init(createEffect: createEffect)
-    }
-
-    static func effect<Environment>(
-        of environment: Environment,
-        createEffectOfEnvironment: @escaping CreateEffectOfEnvironment<Environment>
-    ) -> Self {
-        self.init { transitionPublisher in
-            createEffectOfEnvironment(transitionPublisher, environment)
-        }
-    }
-
-    typealias CreateEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> [Artifact]
-}

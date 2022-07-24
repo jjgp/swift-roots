@@ -1,23 +1,27 @@
-import protocol Combine.Publisher
+import Combine
 
 public extension Effect {
     static func publisher<P: Publisher>(
         _ effect: @escaping PublisherEffect<P>
     ) -> Self where P.Output == A, P.Failure == Never {
-        self.effect { transitionPublisher in
+        self.init { transitionPublisher in
             [effect(transitionPublisher).toEffectArtifact()]
         }
     }
 
-    static func publisher<P: Publisher, Environment>(
-        of environment: Environment,
-        _ effect: @escaping PublisherEffectOfEnvironment<P, Environment>
+    typealias PublisherEffect<P: Publisher> = (TransitionPublisher) -> P
+}
+
+public extension ContextEffect {
+    static func publisher<P: Publisher>(
+        _ effect: @escaping PublisherEffect<P>
     ) -> Self where P.Output == A, P.Failure == Never {
-        self.publisher { transitionPublisher in
-            effect(transitionPublisher, environment)
+        self.init { context in
+            .publisher { transitionPublisher in
+                effect(transitionPublisher, context)
+            }
         }
     }
 
-    typealias PublisherEffect<P: Publisher> = (TransitionPublisher) -> P
-    typealias PublisherEffectOfEnvironment<P: Publisher, Environment> = (TransitionPublisher, Environment) -> P
+    typealias PublisherEffect<P: Publisher> = (TransitionPublisher, Context) -> P
 }

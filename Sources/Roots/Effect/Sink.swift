@@ -1,16 +1,23 @@
-import class Combine.AnyCancellable
+import Combine
 
 public extension Effect {
     static func sink(_ effect: @escaping SinkEffect) -> Self {
-        self.effect { transitionPublisher in [effect(transitionPublisher).toEffectArtifact()] }
-    }
-
-    static func sink<Environment>(of environment: Environment, _ effect: @escaping SinkEffectOfEnvironment<Environment>) -> Self {
-        self.effect(of: environment) { transitionPublisher, environment in
-            [effect(transitionPublisher, environment).toEffectArtifact()]
+        self.init { transitionPublisher in
+            [effect(transitionPublisher).toEffectArtifact()]
         }
     }
 
     typealias SinkEffect = (TransitionPublisher) -> AnyCancellable
-    typealias SinkEffectOfEnvironment<Environment> = (TransitionPublisher, Environment) -> AnyCancellable
+}
+
+public extension ContextEffect {
+    static func sink(_ effect: @escaping SinkEffect) -> Self {
+        self.init { context in
+            .sink { transitionPublisher in
+                effect(transitionPublisher, context)
+            }
+        }
+    }
+
+    typealias SinkEffect = (TransitionPublisher, Context) -> AnyCancellable
 }
