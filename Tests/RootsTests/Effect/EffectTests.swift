@@ -2,20 +2,6 @@ import Combine
 import Roots
 import XCTest
 
-class ApplyEffectTests: XCTestCase {
-    // TODO: test application of effect with transitions, subject, collection for cancellables
-}
-
-class CreateEffectTests: XCTestCase {
-    // TODO: test static create effect methods
-}
-
-class EffectTests: XCTestCase {
-    func testEffectsDirectly() {
-        // TODO: come up with testing pattern for testing the effects in abscence of a store
-    }
-}
-
 class EffectInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
