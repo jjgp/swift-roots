@@ -54,19 +54,55 @@ class StoreInScopeTests: XCTestCase {
     func testScopedPingStore() {
         // Given a store and a scoped store
         let pingPongStore = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
-        let pingPongspy = PublisherSpy(pingPongStore)
-        let pingStore = pingPongStore.scope(to: \.ping, reducer: Count.reducer(state:action:))
-        let pingSpy = PublisherSpy(pingStore)
+        let sut = pingPongStore.scope(to: \.ping, reducer: Count.reducer(state:action:))
+
+        let pingPongSpy = PublisherSpy(pingPongStore)
+        let pingSpy = PublisherSpy(sut)
 
         // When sending actions to the scoped store
-        pingStore.send(.increment(10))
-        pingStore.send(.decrement(20))
-        pingStore.send(.initialize)
+        sut.send(.increment(10))
+        sut.send(.decrement(20))
+        sut.send(.initialize)
 
         // Then each store should emit consistent state values
-        let pintPongValues = pingPongspy.values.map(\.ping.count)
+        let pintPongValues = pingPongSpy.values.map(\.ping.count)
         let pingValues = pingSpy.values.map(\.count)
         XCTAssertEqual(pintPongValues, [0, 10, -10, 0])
         XCTAssertEqual(pingValues, [0, 10, -10, 0])
+    }
+
+    func testActionsOfAllPingPongStoresInScope() {
+        // Given a store and a scoped store
+        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pingSUT = pingPongSUT.scope(to: \.ping, reducer: Count.reducer(state:action:))
+        let pongSUT = pingPongSUT.scope(to: \.pong, reducer: Count.reducer(state:action:))
+
+        let pingPongSpy = PublisherSpy(pingPongSUT)
+        let pingSpy = PublisherSpy(pingSUT)
+        let pongSpy = PublisherSpy(pongSUT)
+
+        // When sending actions to all the scoped store
+        pingSUT.send(.increment(10))
+        pingPongSUT.send(.ping(-20))
+        pongSUT.send(.decrement(20))
+        pingPongSUT.send(.pong(40))
+        pingSUT.send(.initialize)
+        pongSUT.send(.initialize)
+
+        // Then each store should emit consistent state values
+        let pintPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingValues = pingSpy.values.map(\.count)
+        let pongValues = pongSpy.values.map(\.count)
+        XCTAssertEqual(pintPongValues, [
+            "0, 0",
+            "10, 0",
+            "-10, 0",
+            "-10, -20",
+            "-10, 20",
+            "0, 20",
+            "0, 0",
+        ])
+        XCTAssertEqual(pingValues, [0, 10, -10, 0])
+        XCTAssertEqual(pongValues, [0, -20, 20, 0])
     }
 }
