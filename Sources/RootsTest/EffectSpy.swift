@@ -17,6 +17,10 @@ public class EffectSpy<S: State, Action>: Subscriber {
         )
         actionSubject.subscribe(self)
     }
+
+    public convenience init<Context>(_ contextEffect: ContextEffect<S, Action, Context>, in context: Context) {
+        self.init(contextEffect.createEffect(context))
+    }
 }
 
 public extension EffectSpy {

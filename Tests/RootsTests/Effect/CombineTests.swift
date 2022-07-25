@@ -33,7 +33,7 @@ class CombineEffectTests: XCTestCase {
     }
 
     func testCombineContextWithEffects() {
-        // Given an effect that increments the value to a value specified by the context and another that decrements to 0
+        // Given a context effect that increments the value to a value specified by the context and another that decrements to 0
         struct Context {
             let value = 100
         }

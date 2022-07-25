@@ -1,5 +1,5 @@
 public struct ContextEffect<S: State, Action, Context> {
-    let createEffect: CreateEffect
+    public let createEffect: CreateEffect
 
     public init(createEffect: @escaping CreateEffect) {
         self.createEffect = createEffect

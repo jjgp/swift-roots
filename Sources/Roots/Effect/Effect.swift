@@ -1,10 +1,10 @@
 import Combine
 
 public struct Effect<S: State, Action> {
-    let createEffect: CreateEffect
+    public let createArtifacts: CreateArtifacts
 
-    public init(createEffect: @escaping CreateEffect) {
-        self.createEffect = createEffect
+    public init(createArtifacts: @escaping CreateArtifacts) {
+        self.createArtifacts = createArtifacts
     }
 
     public enum Artifact {
@@ -12,7 +12,7 @@ public struct Effect<S: State, Action> {
         case publisher(AnyPublisher<Action, Never>)
     }
 
-    public typealias CreateEffect = (TransitionPublisher) -> [Artifact]
+    public typealias CreateArtifacts = (TransitionPublisher) -> [Artifact]
     public typealias TransitionPublisher = AnyPublisher<Transition<S, Action>, Never>
 }
 
@@ -70,7 +70,7 @@ public extension Effect {
         _ collection: inout Set<AnyCancellable>
     ) {
         var publishers = [AnyPublisher<Action, Never>]()
-        for artifact in createEffect(transitionPublisher) {
+        for artifact in createArtifacts(transitionPublisher) {
             switch artifact {
             case let .cancellable(cancellable):
                 cancellable.store(in: &collection)

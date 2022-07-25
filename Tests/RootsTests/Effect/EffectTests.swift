@@ -28,25 +28,25 @@ class EffectTests: XCTestCase {
 class EffectsOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
-        let sut = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
 
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
                 send(.decrement(2 * value))
             }
         }
-        let pingSUT = sut.scope(
+        let pingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let pongSUT = sut.scope(
+        let pongSUT = pingPongSUT.scope(
             to: \.pong,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
 
-        let spy = PublisherSpy(sut)
+        let pingPongSpy = PublisherSpy(pingPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
         let pongSpy = PublisherSpy(pongSUT)
 
@@ -58,15 +58,15 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(40))
         pongSUT.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        sut.send(PingPong.initialize)
+        pingPongSUT.send(PingPong.initialize)
 
         // Then each store should emit values that are consistent with one another
-        let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
         let pingValues = pingSpy.values.map(\.count)
         let pongValues = pongSpy.values.map(\.count)
         // Note that the ping/pong values are interleaved
         XCTAssertEqual(
-            values,
+            pingPongValues,
             [
                 "0, 0",
                 "10, 0",
@@ -90,7 +90,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
 
     func testEffectsOfTwinStoresInScope() {
         // Given a store that is scoped to two twin stores having the same increment/decrement effect
-        let sut = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pintPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
 
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
@@ -98,18 +98,18 @@ class EffectsOfStoreInScopeTests: XCTestCase {
             }
         }
 
-        let pingSUT = sut.scope(
+        let pingSUT = pintPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let twinPingSUT = sut.scope(
+        let twinPingSUT = pintPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
 
-        let spy = PublisherSpy(sut)
+        let pintPongSpy = PublisherSpy(pintPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
         let twinPingSpy = PublisherSpy(twinPingSUT)
 
@@ -119,14 +119,14 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(20))
         twinPingSUT.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        sut.send(PingPong.initialize)
+        pintPongSUT.send(PingPong.initialize)
 
         // Then the stores should all have a consistent view of the ping count
-        let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
         let pingValues = pingSpy.values.map(\.count)
         let twinPingValues = twinPingSpy.values.map(\.count)
         XCTAssertEqual(
-            values,
+            pingPongValues,
             [
                 "0, 0",
                 "10, 0",
