@@ -28,13 +28,13 @@ public extension Effect.Artifact {
 
 public extension AnyCancellable {
     func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact {
-        .cancellable(self)
+        .init(self)
     }
 }
 
 public extension Publisher {
     func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact where Self.Output == Action, Self.Failure == Never {
-        .publisher(eraseToAnyPublisher())
+        .init(eraseToAnyPublisher())
     }
 }
 
