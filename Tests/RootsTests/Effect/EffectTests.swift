@@ -3,7 +3,7 @@ import Roots
 import RootsTest
 import XCTest
 
-class EffectInScopeTests: XCTestCase {
+class EffectOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
         let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))

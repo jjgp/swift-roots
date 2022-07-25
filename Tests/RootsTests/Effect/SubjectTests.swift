@@ -20,4 +20,6 @@ class SubjectEffectTests: XCTestCase {
         // Then those increments should be decremented back to 0
         XCTAssertEqual(spy.values, [.decrement(10), .decrement(20)])
     }
+
+    func testAsyncSubjectEffect() {}
 }
