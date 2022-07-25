@@ -2,14 +2,14 @@ import Combine
 import Roots
 import XCTest
 
-class StoreTests: XCTestCase {
+class StoreTopLevelTests: XCTestCase {
     func testInitializeCountStore() {
         // Given a store with a count state
-        let store = Store(initialState: Count(), reducer: Count.reducer(state:action:))
-        let spy = PublisherSpy(store)
+        let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
+        let spy = PublisherSpy(sut)
 
         // When initializing the state (an action that is redundant)
-        store.send(.initialize)
+        sut.send(.initialize)
 
         // Then the state should not emit a subsequent new state (as it's a duplicate)
         XCTAssertEqual(spy.values, [Count()])
@@ -17,19 +17,40 @@ class StoreTests: XCTestCase {
 
     func testActionsOnCountStore() {
         // Given a store with a count state
-        let store = Store(initialState: Count(), reducer: Count.reducer(state:action:))
-        let spy = PublisherSpy(store)
+        let sut = Store(initialState: Count(), reducer: Count.reducer(state:action:))
+        let spy = PublisherSpy(sut)
 
         // When actions are sent to increment/decrement/initialize
-        store.send(.increment(10))
-        store.send(.decrement(20))
-        store.send(.initialize)
+        sut.send(.increment(10))
+        sut.send(.decrement(20))
+        sut.send(.initialize)
 
         // Then the state values should reflect those actions
         let values = spy.values.map(\.count)
         XCTAssertEqual(values, [0, 10, -10, 0])
     }
 
+    func testActionsOfPingPongStoreOnCounts() {
+        let sut = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let spy = PublisherSpy(sut)
+
+        // When actions are sent to ping/pong/initialize
+        sut.send(.ping(10))
+        sut.send(.pong(20))
+        sut.send(.initialize)
+
+        // Then the state values should reflect those actions
+        let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        XCTAssertEqual(values, [
+            "0, 0",
+            "10, 0",
+            "10, 20",
+            "0, 0",
+        ])
+    }
+}
+
+class StoreInScopeTests: XCTestCase {
     func testScopedPingStore() {
         // Given a store and a scoped store
         let pingPongStore = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))

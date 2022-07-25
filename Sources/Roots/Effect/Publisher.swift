@@ -3,7 +3,7 @@ import Combine
 public extension Effect {
     static func publisher<P: Publisher>(
         _ effect: @escaping PublisherEffect<P>
-    ) -> Self where P.Output == A, P.Failure == Never {
+    ) -> Self where P.Output == Action, P.Failure == Never {
         self.init { transitionPublisher in
             [effect(transitionPublisher).toEffectArtifact()]
         }
@@ -15,7 +15,7 @@ public extension Effect {
 public extension ContextEffect {
     static func publisher<P: Publisher>(
         _ effect: @escaping PublisherEffect<P>
-    ) -> Self where P.Output == A, P.Failure == Never {
+    ) -> Self where P.Output == Action, P.Failure == Never {
         self.init { context in
             .publisher { transitionPublisher in
                 effect(transitionPublisher, context)

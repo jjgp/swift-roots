@@ -3,7 +3,7 @@ import Combine
 public extension Effect {
     static func subject(_ effect: @escaping SubjectEffect) -> Self {
         self.init { transitionPublisher in
-            let subject = PassthroughSubject<A, Never>()
+            let subject = PassthroughSubject<Action, Never>()
             let cancellable = transitionPublisher.sink { transition in
                 effect(transition.state, transition.action, subject.send)
             }
@@ -19,8 +19,8 @@ public extension Effect {
         }
     }
 
-    typealias SubjectEffect = (S, A, @escaping Send) -> Void
-    typealias AsyncSubjectEffect = (S, A, @escaping Send) async -> Void
+    typealias SubjectEffect = (S, Action, @escaping Send) -> Void
+    typealias AsyncSubjectEffect = (S, Action, @escaping Send) async -> Void
 }
 
 public extension ContextEffect {
@@ -42,6 +42,6 @@ public extension ContextEffect {
         }
     }
 
-    typealias SubjectEffect = (S, A, @escaping Send, Context) -> Void
-    typealias AsyncSubjectEffect = (S, A, @escaping Send, Context) async -> Void
+    typealias SubjectEffect = (S, Action, @escaping Send, Context) -> Void
+    typealias AsyncSubjectEffect = (S, Action, @escaping Send, Context) async -> Void
 }

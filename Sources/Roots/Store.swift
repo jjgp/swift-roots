@@ -1,24 +1,24 @@
 import Combine
 
-public final class Store<S: State, A: Action>: Publisher {
-    private let actionSubject = PassthroughSubject<A, Never>()
+public final class Store<S: State, Action>: Publisher {
+    private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables: Set<AnyCancellable> = []
     private let stateBinding: StateBinding<S>
 
     public convenience init(initialState: S,
-                            reducer: @escaping Reducer<S, A>,
-                            effect: Effect<S, A>? = nil)
+                            reducer: @escaping Reducer<S, Action>,
+                            effect: Effect<S, Action>? = nil)
     {
         self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
     }
 
     init(stateBinding: StateBinding<S>,
-         reducer: @escaping Reducer<S, A>,
-         effect: Effect<S, A>? = nil)
+         reducer: @escaping Reducer<S, Action>,
+         effect: Effect<S, Action>? = nil)
     {
         self.stateBinding = stateBinding
         let transitionPublisher = actionSubject
-            .map { action -> Transition<S, A> in
+            .map { action -> Transition<S, Action> in
                 var nextState = stateBinding.wrappedState
                 nextState = reducer(&nextState, action)
                 if stateBinding.wrappedState != nextState {
@@ -49,7 +49,7 @@ public extension Store {
 }
 
 public extension Store {
-    func scope<StateInScope: State, ActionInScope: Action>(
+    func scope<StateInScope: State, ActionInScope>(
         to keyPath: WritableKeyPath<S, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
@@ -63,7 +63,7 @@ public extension Store {
 }
 
 public extension Store {
-    func send(_ action: A) {
+    func send(_ action: Action) {
         actionSubject.send(action)
     }
 }

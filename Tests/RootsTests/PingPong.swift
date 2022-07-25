@@ -7,7 +7,7 @@ struct Count: State {
 }
 
 extension Count {
-    enum Action: Roots.Action {
+    enum Action: Equatable {
         case initialize, increment(Int), decrement(Int)
     }
 }
@@ -34,11 +34,11 @@ struct PingPong: State {
 }
 
 extension PingPong {
-    struct Action: Roots.Action {
+    struct Action {
         let kind: Kind
         let value: Int
 
-        init(kind: Kind, value: Int = 0) {
+        private init(kind: Kind, value: Int = 0) {
             self.kind = kind
             self.value = value
         }
@@ -54,11 +54,11 @@ extension PingPong.Action {
         .init(kind: .initialize)
     }
 
-    static func ping(value: Int) -> Self {
+    static func ping(_ value: Int) -> Self {
         .init(kind: .ping, value: value)
     }
 
-    static func pong(value: Int) -> Self {
+    static func pong(_ value: Int) -> Self {
         .init(kind: .pong, value: value)
     }
 }

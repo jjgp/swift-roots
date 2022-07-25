@@ -1,4 +1,4 @@
-public struct ContextEffect<S: State, A: Action, Context> {
+public struct ContextEffect<S: State, Action, Context> {
     let createEffect: CreateEffect
 
     public init(createEffect: @escaping CreateEffect) {
@@ -6,7 +6,7 @@ public struct ContextEffect<S: State, A: Action, Context> {
     }
 
     public typealias CreateEffect = (Context) -> Effect
-    public typealias Effect = Roots.Effect<S, A>
+    public typealias Effect = Roots.Effect<S, Action>
     public typealias Send = Effect.Send
     public typealias TransitionPublisher = Effect.TransitionPublisher
 }

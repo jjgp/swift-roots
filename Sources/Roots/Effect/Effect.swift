@@ -1,6 +1,6 @@
 import Combine
 
-public struct Effect<S: State, A: Action> {
+public struct Effect<S: State, Action> {
     let createEffect: CreateEffect
 
     public init(createEffect: @escaping CreateEffect) {
@@ -9,21 +9,21 @@ public struct Effect<S: State, A: Action> {
 
     public enum Artifact {
         case cancellable(AnyCancellable)
-        case publisher(AnyPublisher<A, Never>)
+        case publisher(AnyPublisher<Action, Never>)
     }
 
     public typealias CreateEffect = (TransitionPublisher) -> [Artifact]
-    public typealias TransitionPublisher = AnyPublisher<Transition<S, A>, Never>
+    public typealias TransitionPublisher = AnyPublisher<Transition<S, Action>, Never>
 }
 
 public extension AnyCancellable {
-    func toEffectArtifact<S: State, A: Action>() -> Effect<S, A>.Artifact {
+    func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact {
         .cancellable(self)
     }
 }
 
 public extension Publisher {
-    func toEffectArtifact<S: State, A: Action>() -> Effect<S, A>.Artifact where Self.Output == A, Self.Failure == Never {
+    func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact where Self.Output == Action, Self.Failure == Never {
         .publisher(eraseToAnyPublisher())
     }
 }
@@ -34,7 +34,7 @@ extension Effect {
         _ send: @escaping Send,
         _ collection: inout Set<AnyCancellable>
     ) {
-        var publishers = [AnyPublisher<A, Never>]()
+        var publishers = [AnyPublisher<Action, Never>]()
         for artifact in createEffect(transitionPublisher) {
             switch artifact {
             case let .cancellable(cancellable):
@@ -46,5 +46,5 @@ extension Effect {
         Publishers.MergeMany(publishers).sink(receiveValue: send).store(in: &collection)
     }
 
-    public typealias Send = (A) -> Void
+    public typealias Send = (Action) -> Void
 }
