@@ -1,7 +1,8 @@
-import Combine
 import Roots
 import RootsTest
 import XCTest
+
+class EffectTests: XCTestCase {}
 
 class EffectOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {

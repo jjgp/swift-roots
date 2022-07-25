@@ -1,10 +1,10 @@
 import Combine
 
-struct StateBinding<S: State> {
+public struct StateBinding<S: State>: Publisher {
     private let getState: () -> S
     private let setState: (S) -> Void
     private let statePublisher: AnyPublisher<S, Never>
-    var wrappedState: S {
+    public var wrappedState: S {
         get {
             getState()
         }
@@ -24,7 +24,7 @@ struct StateBinding<S: State> {
     }
 }
 
-extension StateBinding {
+public extension StateBinding {
     init(initialState: S) {
         let subject = CurrentValueSubject<S, Never>(initialState)
         self.init(
@@ -39,7 +39,7 @@ extension StateBinding {
     }
 }
 
-extension StateBinding: Publisher {
+public extension StateBinding {
     func receive<Subscriber: Combine.Subscriber>(
         subscriber: Subscriber
     ) where Failure == Subscriber.Failure, Output == Subscriber.Input {
@@ -50,7 +50,7 @@ extension StateBinding: Publisher {
     typealias Output = S
 }
 
-extension StateBinding {
+public extension StateBinding {
     func scope<StateInScope: State>(_ keyPath: WritableKeyPath<S, StateInScope>) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: {

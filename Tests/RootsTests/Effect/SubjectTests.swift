@@ -1,4 +1,4 @@
-@testable import Roots
+import Roots
 import RootsTest
 import XCTest
 
