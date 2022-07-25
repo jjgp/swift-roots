@@ -23,7 +23,7 @@ class PublisherSpy<Input, Failure: Error>: Subscriber {
     func receive(completion: Subscribers.Completion<Failure>) {
         switch completion {
         case .finished:
-            finished = false
+            finished = true
         case let .failure(error):
             failure = error
         }
