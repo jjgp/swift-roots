@@ -33,46 +33,39 @@ struct PingPong: State {
     var pong: Count = .init()
 }
 
+protocol PingPongAction {}
+
 extension PingPong {
-    struct Action {
-        let kind: Kind
+    struct Initialize: PingPongAction {}
+
+    struct Increment: PingPongAction {
+        let keyPath: WritableKeyPath<PingPong, Count>
         let value: Int
-
-        private init(kind: Kind, value: Int = 0) {
-            self.kind = kind
-            self.value = value
-        }
-
-        enum Kind: String {
-            case initialize, ping, pong
-        }
-    }
-}
-
-extension PingPong.Action {
-    static var initialize: Self {
-        .init(kind: .initialize)
-    }
-
-    static func ping(_ value: Int) -> Self {
-        .init(kind: .ping, value: value)
-    }
-
-    static func pong(_ value: Int) -> Self {
-        .init(kind: .pong, value: value)
     }
 }
 
 extension PingPong {
-    static func reducer(state: inout PingPong, action: Action) -> PingPong {
-        switch action.kind {
-        case .initialize:
+    static var initialize: Initialize {
+        .init()
+    }
+
+    static func ping(_ value: Int) -> Increment {
+        .init(keyPath: \.ping, value: value)
+    }
+
+    static func pong(_ value: Int) -> Increment {
+        .init(keyPath: \.pong, value: value)
+    }
+}
+
+extension PingPong {
+    static func reducer(state: inout PingPong, action: PingPongAction) -> PingPong {
+        if action is PingPong.Initialize {
             return PingPong()
-        case .ping:
-            state.ping.count += action.value
-        case .pong:
-            state.pong.count += action.value
+        } else if let action = action as? PingPong.Increment {
+            state[keyPath: action.keyPath].count += action.value
         }
+
         return state
     }
 }

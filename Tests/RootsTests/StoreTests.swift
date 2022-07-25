@@ -35,9 +35,9 @@ class StoreTopLevelTests: XCTestCase {
         let spy = PublisherSpy(sut)
 
         // When actions are sent to ping/pong/initialize
-        sut.send(.ping(10))
-        sut.send(.pong(20))
-        sut.send(.initialize)
+        sut.send(PingPong.ping(10))
+        sut.send(PingPong.pong(20))
+        sut.send(PingPong.initialize)
 
         // Then the state values should reflect those actions
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -83,9 +83,9 @@ class StoreInScopeTests: XCTestCase {
 
         // When sending actions to all the scoped store
         pingSUT.send(.increment(10))
-        pingPongSUT.send(.ping(-20))
+        pingPongSUT.send(PingPong.ping(-20))
         pongSUT.send(.decrement(20))
-        pingPongSUT.send(.pong(40))
+        pingPongSUT.send(PingPong.pong(40))
         pingSUT.send(.initialize)
         pongSUT.send(.initialize)
 

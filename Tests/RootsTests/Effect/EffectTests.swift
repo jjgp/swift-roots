@@ -47,7 +47,7 @@ class EffectInScopeTests: XCTestCase {
         pingStore.send(.increment(40))
         pongStore.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        store.send(.initialize)
+        store.send(PingPong.initialize)
 
         // Then each store should emit values that are consistent with one another
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -105,7 +105,7 @@ class EffectInScopeTests: XCTestCase {
         pingStore.send(.increment(20))
         twinPingStore.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        store.send(.initialize)
+        store.send(PingPong.initialize)
 
         // Then the stores should all have a consistent view of the ping count
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
