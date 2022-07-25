@@ -7,7 +7,7 @@ public extension Effect {
             let cancellable = transitionPublisher.sink { transition in
                 effect(transition.state, transition.action, subject.send)
             }
-            return [cancellable.toEffectArtifact(), subject.toEffectArtifact()]
+            return [Artifact](cancellables: cancellable, publishers: subject)
         }
     }
 

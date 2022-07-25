@@ -6,15 +6,15 @@ class EffectTests: XCTestCase {
     func testEffect() {
         // Given an effect that maps increments to decrements
         let spy = EffectSpy(Effect<Count, Count.Action> { transitionPublisher in
-            [
-                transitionPublisher.compactMap { transition in
-                    if case let .increment(value) = transition.action {
-                        return .decrement(value)
-                    } else {
-                        return nil
-                    }
-                }.toEffectArtifact(),
-            ]
+            let publisher = transitionPublisher.compactMap { transition -> Count.Action? in
+                if case let .increment(value) = transition.action {
+                    return .decrement(value)
+                } else {
+                    return nil
+                }
+            }
+
+            return .init(publisher)
         })
 
         // When an increment is sent

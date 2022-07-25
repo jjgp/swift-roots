@@ -3,7 +3,7 @@ import Combine
 public extension Effect {
     static func sink(_ effect: @escaping SinkEffect) -> Self {
         self.init { transitionPublisher in
-            [effect(transitionPublisher).toEffectArtifact()]
+            [Artifact](effect(transitionPublisher))
         }
     }
 
