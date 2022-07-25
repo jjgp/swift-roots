@@ -1,36 +1,18 @@
 import Roots
 
-// MARK: PingPong
-
-struct PingPong {
-    var ping: Count = .init()
-    var pong: Count = .init()
-}
-
-extension PingPong: State {
-    static func reducer(state _: inout PingPong, action: Action) -> PingPong {
-        switch action {
-        case .initialize:
-            return PingPong()
-        }
-    }
-
-    enum Action: String, Roots.Action {
-        case initialize
-    }
-}
-
 // MARK: Count
 
-struct Count {
+struct Count: State {
     var count = 0
 }
 
-extension Count: State {
+extension Count {
     enum Action: Roots.Action {
         case initialize, increment(Int), decrement(Int)
     }
+}
 
+extension Count {
     static func reducer(state: inout Self, action: Action) -> Self {
         switch action {
         case .initialize:
@@ -44,32 +26,53 @@ extension Count: State {
     }
 }
 
-extension Count.Action: RawRepresentable {
-    typealias RawValue = String
+// MARK: PingPong
 
-    public init?(rawValue: RawValue) {
-        let components = rawValue.components(separatedBy: ",")
-        let value = components.count == 2 ? components.last.flatMap(Int.init) : nil
+struct PingPong: State {
+    var ping: Count = .init()
+    var pong: Count = .init()
+}
 
-        if components.first == "initialize" {
-            self = .initialize
-        } else if components.first == "increment", let value = value {
-            self = .increment(value)
-        } else if components.first == "decrement", let value = value {
-            self = .decrement(value)
-        } else {
-            return nil
+extension PingPong {
+    struct Action: Roots.Action {
+        let kind: Kind
+        let value: Int
+
+        init(kind: Kind, value: Int = 0) {
+            self.kind = kind
+            self.value = value
+        }
+
+        enum Kind: String {
+            case initialize, ping, pong
         }
     }
+}
 
-    var rawValue: String {
-        switch self {
+extension PingPong.Action {
+    static var initialize: Self {
+        .init(kind: .initialize)
+    }
+
+    static func ping(value: Int) -> Self {
+        .init(kind: .ping, value: value)
+    }
+
+    static func pong(value: Int) -> Self {
+        .init(kind: .pong, value: value)
+    }
+}
+
+extension PingPong {
+    static func reducer(state: inout PingPong, action: Action) -> PingPong {
+        switch action.kind {
         case .initialize:
-            return "initialize"
-        case let .increment(value):
-            return "increment,\(value)"
-        case let .decrement(value):
-            return "decrement,\(value)"
+            return PingPong()
+        case .ping:
+            state.ping.count += action.value
+        case .pong:
+            state.pong.count += action.value
         }
+        return state
     }
 }
