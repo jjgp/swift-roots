@@ -1,15 +1,15 @@
 import Combine
-@testable import Roots
+import Roots
 
-class EffectSpy<S: State, Action>: Subscriber {
+public class EffectSpy<S: State, Action>: Subscriber {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
-    private(set) var finished = false
-    private(set) var values: [Input] = []
-    private(set) var subscription: Subscription!
+    public private(set) var finished = false
+    public private(set) var values: [Input] = []
+    private var subscription: Subscription!
     private let transitionSubject = PassthroughSubject<Transition<S, Action>, Never>()
 
-    init(_ effect: Effect<S, Action>) {
+    public init(_ effect: Effect<S, Action>) {
         effect.apply(
             transitionSubject.eraseToAnyPublisher(),
             actionSubject.send(_:),
@@ -17,7 +17,9 @@ class EffectSpy<S: State, Action>: Subscriber {
         )
         actionSubject.subscribe(self)
     }
+}
 
+public extension EffectSpy {
     func receive(subscription: Subscription) {
         self.subscription = subscription
         subscription.request(.unlimited)
@@ -32,10 +34,12 @@ class EffectSpy<S: State, Action>: Subscriber {
         finished = false
     }
 
+    typealias Input = Action
+    typealias Failure = Never
+}
+
+public extension EffectSpy {
     func send(state: S, action: Action) {
         transitionSubject.send(.init(state: state, action: action))
     }
-
-    typealias Input = Action
-    typealias Failure = Never
 }

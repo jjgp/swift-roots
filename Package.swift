@@ -14,6 +14,10 @@ let package = Package(
             name: "Roots",
             targets: ["Roots"]
         ),
+        .library(
+            name: "RootsTest",
+            targets: ["RootsTest"]
+        ),
     ],
     dependencies: [],
     targets: [
@@ -21,9 +25,13 @@ let package = Package(
             name: "Roots",
             dependencies: []
         ),
+        .target(
+            name: "RootsTest",
+            dependencies: ["Roots"]
+        ),
         .testTarget(
             name: "RootsTests",
-            dependencies: ["Roots"]
+            dependencies: ["Roots", "RootsTest"]
         ),
     ]
 )

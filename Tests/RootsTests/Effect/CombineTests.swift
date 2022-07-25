@@ -1,4 +1,5 @@
 import Roots
+import RootsTest
 import XCTest
 
 class CombineEffectTests: XCTestCase {

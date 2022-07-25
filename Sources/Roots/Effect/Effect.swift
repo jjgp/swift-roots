@@ -28,7 +28,7 @@ public extension Publisher {
     }
 }
 
-extension Effect {
+public extension Effect {
     func apply(
         _ transitionPublisher: TransitionPublisher,
         _ send: @escaping Send,
@@ -46,5 +46,5 @@ extension Effect {
         Publishers.MergeMany(publishers).sink(receiveValue: send).store(in: &collection)
     }
 
-    public typealias Send = (Action) -> Void
+    typealias Send = (Action) -> Void
 }

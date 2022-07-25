@@ -1,4 +1,5 @@
 @testable import Roots
+import RootsTest
 import XCTest
 
 class SubjectEffectTests: XCTestCase {
