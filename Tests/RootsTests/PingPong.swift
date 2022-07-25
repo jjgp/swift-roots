@@ -36,17 +36,15 @@ struct PingPong: State {
 protocol PingPongAction {}
 
 extension PingPong {
-    struct Initialize: PingPongAction {}
+    struct Initialize: Action {}
 
-    struct Increment: PingPongAction {
-        let keyPath: WritableKeyPath<PingPong, Count>
-        let value: Int
-    }
-}
-
-extension PingPong {
     static var initialize: Initialize {
         .init()
+    }
+
+    struct Increment: Action {
+        let keyPath: WritableKeyPath<PingPong, Count>
+        let value: Int
     }
 
     static func ping(_ value: Int) -> Increment {
@@ -56,10 +54,12 @@ extension PingPong {
     static func pong(_ value: Int) -> Increment {
         .init(keyPath: \.pong, value: value)
     }
+
+    typealias Action = PingPongAction
 }
 
 extension PingPong {
-    static func reducer(state: inout PingPong, action: PingPongAction) -> PingPong {
+    static func reducer(state: inout PingPong, action: Action) -> PingPong {
         if action is PingPong.Initialize {
             return PingPong()
         } else if let action = action as? PingPong.Increment {
