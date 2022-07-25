@@ -2,40 +2,63 @@ import Roots
 import RootsTest
 import XCTest
 
-class EffectTests: XCTestCase {}
+class EffectTests: XCTestCase {
+    func testEffect() {
+        // Given an effect that maps increments to decrements
+        let spy = EffectSpy(Effect<Count, Count.Action> { transitionPublisher in
+            [
+                transitionPublisher.compactMap { transition in
+                    if case let .increment(value) = transition.action {
+                        return .decrement(value)
+                    } else {
+                        return nil
+                    }
+                }.toEffectArtifact(),
+            ]
+        })
 
-class EffectOfStoreInScopeTests: XCTestCase {
+        // When an increment is sent
+        spy.send(state: .init(), action: .increment(10))
+
+        // Then the a decrement action should be sent
+        XCTAssertEqual(spy.values, [.decrement(10)])
+    }
+}
+
+class EffectsOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
-        let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let sut = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
                 send(.decrement(2 * value))
             }
         }
-        let pingStore = store.scope(
+        let pingSUT = sut.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let pongStore = store.scope(
+        let pongSUT = sut.scope(
             to: \.pong,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let spy = PublisherSpy(store)
-        let pingSpy = PublisherSpy(pingStore)
-        let pongSpy = PublisherSpy(pongStore)
+
+        let spy = PublisherSpy(sut)
+        let pingSpy = PublisherSpy(pingSUT)
+        let pongSpy = PublisherSpy(pongSUT)
 
         // When each scoped store increments the values with a set sequence...
-        pingStore.send(.increment(10))
-        pongStore.send(.increment(10))
-        pingStore.send(.increment(20))
-        pongStore.send(.increment(20))
-        pingStore.send(.increment(40))
-        pongStore.send(.increment(40))
+        pingSUT.send(.increment(10))
+        pongSUT.send(.increment(10))
+        pingSUT.send(.increment(20))
+        pongSUT.send(.increment(20))
+        pingSUT.send(.increment(40))
+        pongSUT.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        store.send(PingPong.initialize)
+        sut.send(PingPong.initialize)
 
         // Then each store should emit values that are consistent with one another
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -67,33 +90,36 @@ class EffectOfStoreInScopeTests: XCTestCase {
 
     func testEffectsOfTwinStoresInScope() {
         // Given a store that is scoped to two twin stores having the same increment/decrement effect
-        let store = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let sut = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+
         let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
             if case let .increment(value) = action {
                 send(.decrement(2 * value))
             }
         }
-        let pingStore = store.scope(
+
+        let pingSUT = sut.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let twinPingStore = store.scope(
+        let twinPingSUT = sut.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: senderEffect
         )
-        let spy = PublisherSpy(store)
-        let pingSpy = PublisherSpy(pingStore)
-        let twinPingSpy = PublisherSpy(twinPingStore)
+
+        let spy = PublisherSpy(sut)
+        let pingSpy = PublisherSpy(pingSUT)
+        let twinPingSpy = PublisherSpy(twinPingSUT)
 
         // When each scoped store increments the values with a set sequence...
-        pingStore.send(.increment(10))
-        twinPingStore.send(.increment(10))
-        pingStore.send(.increment(20))
-        twinPingStore.send(.increment(20))
+        pingSUT.send(.increment(10))
+        twinPingSUT.send(.increment(10))
+        pingSUT.send(.increment(20))
+        twinPingSUT.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        store.send(PingPong.initialize)
+        sut.send(PingPong.initialize)
 
         // Then the stores should all have a consistent view of the ping count
         let values = spy.values.map { "\($0.ping.count), \($0.pong.count)" }

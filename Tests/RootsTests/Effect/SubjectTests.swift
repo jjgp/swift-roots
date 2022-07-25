@@ -21,5 +21,24 @@ class SubjectEffectTests: XCTestCase {
         XCTAssertEqual(spy.values, [.decrement(10), .decrement(20)])
     }
 
-    func testAsyncSubjectEffect() {}
+    func testAsyncSubjectEffect() {
+        // Given a subject effect that decrements any incremented value
+        let expect = expectation(description: "Action is sent on main queue")
+        let spy = EffectSpy<Count, Count.Action>(.subject { _, action, send in
+            if case let .increment(value) = action {
+                await MainActor.run {
+                    send(.decrement(value))
+                    expect.fulfill()
+                }
+            }
+        })
+
+        // When sending an increment
+        spy.send(state: .init(count: 10), action: .increment(10))
+
+        wait(for: [expect], timeout: 1)
+
+        // Then that increment should be decremented back to 0
+        XCTAssertEqual(spy.values, [.decrement(10)])
+    }
 }
