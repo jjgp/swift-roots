@@ -38,13 +38,13 @@ class CombineEffectTests: XCTestCase {
     }
 }
 
-extension CombineEffectTests {
+private extension XCTestCase {
     struct Context {
         let value: Int
     }
 }
 
-extension ContextEffect where S == Count, Action == Count.Action, Context == CombineEffectTests.Context {
+private extension ContextEffect where S == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
         .subject { state, action, send, context in
             if state.count < context.value, case let .increment(value) = action {
@@ -62,7 +62,7 @@ extension ContextEffect where S == Count, Action == Count.Action, Context == Com
     }
 }
 
-extension Effect where S == Count, Action == Count.Action {
+private extension Effect where S == Count, Action == Count.Action {
     static func incrementTo100() -> Self {
         .subject { state, action, send in
             if state.count < 100, case let .increment(value) = action {

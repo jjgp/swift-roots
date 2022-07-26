@@ -15,7 +15,7 @@ class PublisherEffectTests: XCTestCase {
     }
 }
 
-extension Effect where S == Count, Action == Count.Action {
+private extension Effect where S == Count, Action == Count.Action {
     static func mapIncrementsToDecrementBy100() -> Self {
         .publisher { transitionPublisher in
             transitionPublisher

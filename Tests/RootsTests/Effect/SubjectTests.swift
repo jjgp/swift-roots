@@ -39,7 +39,7 @@ class SubjectEffectTests: XCTestCase {
     }
 }
 
-extension Effect where S == Count, Action == Count.Action {
+private extension Effect where S == Count, Action == Count.Action {
     static func decrementByIncrementedValue() -> Self {
         .subject { _, action, send in
             if case let .increment(value) = action {

@@ -5,17 +5,7 @@ import XCTest
 class EffectTests: XCTestCase {
     func testEffect() {
         // Given an effect that maps increments to decrements
-        let spy = EffectSpy(Effect<Count, Count.Action> { transitionPublisher in
-            let publisher = transitionPublisher.compactMap { transition -> Count.Action? in
-                if case let .increment(value) = transition.action {
-                    return .decrement(value)
-                } else {
-                    return nil
-                }
-            }
-
-            return .init(publisher)
-        })
+        let spy = EffectSpy(.decrementByIncrementedValue())
 
         // When an increment is sent
         spy.send(state: .init(), action: .increment(10))
@@ -30,20 +20,15 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
         let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
 
-        let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
-            if case let .increment(value) = action {
-                send(.decrement(2 * value))
-            }
-        }
         let pingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: senderEffect
+            effect: .decrementByDoubleIncrementedValue()
         )
         let pongSUT = pingPongSUT.scope(
             to: \.pong,
             reducer: Count.reducer(state:action:),
-            effect: senderEffect
+            effect: .decrementByDoubleIncrementedValue()
         )
 
         let pingPongSpy = PublisherSpy(pingPongSUT)
@@ -92,21 +77,15 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         // Given a store that is scoped to two twin stores having the same increment/decrement effect
         let pintPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
 
-        let senderEffect: Effect<Count, Count.Action> = .subject { _, action, send in
-            if case let .increment(value) = action {
-                send(.decrement(2 * value))
-            }
-        }
-
         let pingSUT = pintPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: senderEffect
+            effect: .decrementByDoubleIncrementedValue()
         )
         let twinPingSUT = pintPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: senderEffect
+            effect: .decrementByDoubleIncrementedValue()
         )
 
         let pintPongSpy = PublisherSpy(pintPongSUT)
@@ -142,5 +121,29 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         )
         XCTAssertEqual(pingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
         XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
+    }
+}
+
+private extension Effect where S == Count, Action == Count.Action {
+    static func decrementByIncrementedValue() -> Self {
+        Effect { transitionPublisher in
+            let publisher = transitionPublisher.compactMap { transition -> Count.Action? in
+                if case let .increment(value) = transition.action {
+                    return .decrement(value)
+                } else {
+                    return nil
+                }
+            }
+
+            return .init(publisher)
+        }
+    }
+
+    static func decrementByDoubleIncrementedValue() -> Self {
+        .subject { _, action, send in
+            if case let .increment(value) = action {
+                send(.decrement(2 * value))
+            }
+        }
     }
 }

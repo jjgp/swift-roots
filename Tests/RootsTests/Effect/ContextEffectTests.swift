@@ -15,13 +15,13 @@ class ContextEffectTests: XCTestCase {
     }
 }
 
-extension ContextEffectTests {
+private extension XCTestCase {
     struct Context {
         let value: Int
     }
 }
 
-extension ContextEffect where S == Count, Action == Count.Action, Context == ContextEffectTests.Context {
+private extension ContextEffect where S == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
         ContextEffect { context in
             Effect { transitionPublisher in
