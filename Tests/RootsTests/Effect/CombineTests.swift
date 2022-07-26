@@ -11,17 +11,7 @@ class CombineEffectTests: XCTestCase {
 
     func testCombineEffects() {
         // Given an effect that increments the value to 100 and another that decrements the a count of 100 to 0
-        let spy = EffectSpy<Count, Count.Action>(combine(effects:
-            .subject { state, action, send in
-                if state.count < 100, case let .increment(value) = action {
-                    send(.increment(100 - value))
-                }
-            },
-            .subject { state, _, send in
-                if state.count == 100 {
-                    send(.decrement(100))
-                }
-            }))
+        let spy = EffectSpy(combine(effects: .incrementTo100(), .decrement100To0()))
 
         // When sending any value...
         spy.send(state: .init(count: 1), action: .increment(1))
@@ -34,20 +24,9 @@ class CombineEffectTests: XCTestCase {
 
     func testCombineContextWithEffects() {
         // Given a context effect that increments the value to a value specified by the context and another that decrements to 0
-        struct Context {
-            let value = 100
-        }
-        let spy = EffectSpy<Count, Count.Action>(combine(context: Context(), with:
-            .subject { state, action, send, context in
-                if state.count < context.value, case let .increment(value) = action {
-                    send(.increment(context.value - value))
-                }
-            },
-            .subject { state, _, send, context in
-                if state.count == context.value {
-                    send(.decrement(context.value))
-                }
-            }))
+        let spy = EffectSpy(
+            combine(context: Context(value: 100), with: .incrementToContextValue(), .decrementContextValueTo0())
+        )
 
         // When sending any value...
         spy.send(state: .init(count: 1), action: .increment(1))
@@ -56,5 +35,47 @@ class CombineEffectTests: XCTestCase {
 
         // Then it's expected to see the values incremented to 100 and subsequently decremented to 0
         XCTAssertEqual(spy.values, [.increment(99), .decrement(100)])
+    }
+}
+
+extension CombineEffectTests {
+    struct Context {
+        let value: Int
+    }
+}
+
+extension ContextEffect where S == Count, Action == Count.Action, Context == CombineEffectTests.Context {
+    static func incrementToContextValue() -> Self {
+        .subject { state, action, send, context in
+            if state.count < context.value, case let .increment(value) = action {
+                send(.increment(context.value - value))
+            }
+        }
+    }
+
+    static func decrementContextValueTo0() -> Self {
+        .subject { state, _, send, context in
+            if state.count == context.value {
+                send(.decrement(context.value))
+            }
+        }
+    }
+}
+
+extension Effect where S == Count, Action == Count.Action {
+    static func incrementTo100() -> Self {
+        .subject { state, action, send in
+            if state.count < 100, case let .increment(value) = action {
+                send(.increment(100 - value))
+            }
+        }
+    }
+
+    static func decrement100To0() -> Self {
+        .subject { state, _, send in
+            if state.count == 100 {
+                send(.decrement(100))
+            }
+        }
     }
 }

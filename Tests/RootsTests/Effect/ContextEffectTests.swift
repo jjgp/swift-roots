@@ -5,7 +5,7 @@ import XCTest
 class ContextEffectTests: XCTestCase {
     func testContextEffect() {
         // Given an context effect that increments the value to a value specified by the context
-        let spy = EffectSpy(.incrementToContextValue(), in: .init(value: 100))
+        let spy = EffectSpy(.incrementToContextValue(), in: Context(value: 100))
 
         // When an increment is less than the value
         spy.send(state: .init(count: 1), action: .increment(1))
