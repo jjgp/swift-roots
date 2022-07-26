@@ -5,11 +5,7 @@ import XCTest
 class SubjectEffectTests: XCTestCase {
     func testSubjectEffect() {
         // Given a subject effect that decrements any incremented value
-        let spy = EffectSpy<Count, Count.Action>(.subject { _, action, send in
-            if case let .increment(value) = action {
-                send(.decrement(value))
-            }
-        })
+        let spy = EffectSpy(.decrementByIncrementedValue())
 
         // When sending any increments
         spy.send(state: .init(count: 10), action: .increment(10))
@@ -40,5 +36,15 @@ class SubjectEffectTests: XCTestCase {
 
         // Then that increment should be decremented back to 0
         XCTAssertEqual(spy.values, [.decrement(10)])
+    }
+}
+
+extension Effect where S == Count, Action == Count.Action {
+    static func decrementByIncrementedValue() -> Self {
+        .subject { _, action, send in
+            if case let .increment(value) = action {
+                send(.decrement(value))
+            }
+        }
     }
 }
