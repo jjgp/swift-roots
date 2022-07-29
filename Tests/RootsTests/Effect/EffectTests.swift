@@ -135,7 +135,7 @@ private extension Effect where S == Count, Action == Count.Action {
                 }
             }
 
-            return .init(publisher)
+            return [Artifact](publisher)
         }
     }
 
