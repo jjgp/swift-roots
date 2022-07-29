@@ -14,9 +14,11 @@ class CombineEffectTests: XCTestCase {
         let spy = EffectSpy(combine(effects: .incrementTo100(), .decrement100To0()))
 
         // When sending any value...
+        var state = Count(count: 1)
         spy.send(state: .init(count: 1), action: .increment(1))
         // ...and simulating the increment to 100
-        spy.send(state: .init(count: 100), action: .increment(99))
+        state.count += 99
+        spy.send(state: state, action: .increment(99))
 
         // Then it's expected to see the values incremented to 100 and subsequently decremented to 0
         XCTAssertEqual(spy.values, [.increment(99), .decrement(100)])

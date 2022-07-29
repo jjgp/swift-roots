@@ -1,0 +1,21 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-12
+    strategy:
+      matrix:
+        platform: ["iOS Simulator,name=iPhone 13 Pro Max", "macOS"]
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"

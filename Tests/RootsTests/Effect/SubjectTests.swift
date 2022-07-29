@@ -8,8 +8,10 @@ class SubjectEffectTests: XCTestCase {
         let spy = EffectSpy(.decrementByIncrementedValue())
 
         // When sending any increments
-        spy.send(state: .init(count: 10), action: .increment(10))
-        spy.send(state: .init(count: 20), action: .increment(20))
+        var state = Count(count: 10)
+        spy.send(state: state, action: .increment(10))
+        state.count = 20
+        spy.send(state: state, action: .increment(20))
         // This action should be unaffected
         spy.send(state: .init(count: 0), action: .decrement(40))
 
