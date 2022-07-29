@@ -17,5 +17,14 @@ jobs:
         platform: ["iOS Simulator,name=iPhone 13 Pro Max", "macOS"]
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"
+      - name: Check if tests required
+        id: check_xctest_required
+        run: |
+          file_pattern=".github/workflows|.swiftpm|Sources|Tests|.swift-version|Package.swift"
+          diff="$(git diff --name-only HEAD^ HEAD | grep -E '$file_pattern')"
+          if [[ ${#diff[@]} -gt 0 ]]; then
+            echo "::set-output name=is_required::1"
+          fi
+      - name: XCTest
+        if: ${{ steps.check_xctest_required.outputs.is_required }}
+        run: xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"
