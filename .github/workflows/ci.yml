@@ -18,4 +18,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          xcodebuild test -scheme RootsTests -destination platform="${{ matrix.platform }}"
+          xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"
