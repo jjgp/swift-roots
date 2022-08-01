@@ -47,16 +47,8 @@ extension PingPong {
         Initialize()
     }
 
-    var addToPing: (Int) -> Action {
-        { value in
-            Addition(keyPath: \.ping, value: value)
-        }
-    }
-
-    var addToPong: (Int) -> Action {
-        { value in
-            Addition(keyPath: \.pong, value: value)
-        }
+    var addTo: (WritableKeyPath<PingPong, Count>, Int) -> Action {
+        Addition.init(keyPath:value:)
     }
 }
 
