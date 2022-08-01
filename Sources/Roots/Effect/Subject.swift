@@ -1,6 +1,14 @@
 import Combine
 
 public extension Effect {
+    static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
+        .subject { state, action, send in
+            Task {
+                await effect(state, action, send)
+            }
+        }
+    }
+
     static func subject(_ effect: @escaping SubjectEffect) -> Self {
         self.init { transitionPublisher in
             let subject = PassthroughSubject<Action, Never>()
@@ -11,19 +19,19 @@ public extension Effect {
         }
     }
 
+    typealias AsyncSubjectEffect = (State, Action, @escaping Send) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Send) -> Void
+}
+
+public extension ContextEffect {
     static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
-        .subject { state, action, send in
+        .subject { state, action, send, context in
             Task {
-                await effect(state, action, send)
+                await effect(state, action, send, context)
             }
         }
     }
 
-    typealias SubjectEffect = (State, Action, @escaping Send) -> Void
-    typealias AsyncSubjectEffect = (State, Action, @escaping Send) async -> Void
-}
-
-public extension ContextEffect {
     static func subject(_ effect: @escaping SubjectEffect) -> Self {
         self.init { context in
             .subject { state, action, send in
@@ -32,16 +40,6 @@ public extension ContextEffect {
         }
     }
 
-    static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
-        self.init { context in
-            .subject { state, action, send in
-                Task {
-                    await effect(state, action, send, context)
-                }
-            }
-        }
-    }
-
-    typealias SubjectEffect = (State, Action, @escaping Send, Context) -> Void
     typealias AsyncSubjectEffect = (State, Action, @escaping Send, Context) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Send, Context) -> Void
 }

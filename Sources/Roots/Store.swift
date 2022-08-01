@@ -65,12 +65,39 @@ public extension Store {
     func send(_ action: Action) {
         actionSubject.send(action)
     }
+}
 
+public extension Store {
+    private func actionCreator<T>(for keyPath: KeyPath<State, T>) -> T {
+        stateBinding.wrappedState[keyPath: keyPath]
+    }
+
+    // swiftlint:disable function_parameter_count identifier_name
     func send(_ keyPath: KeyPath<State, Action>) {
-        actionSubject.send(stateBinding.wrappedState[keyPath: keyPath])
+        send(actionCreator(for: keyPath))
     }
 
-    func send<T>(_ keyPath: KeyPath<State, (T) -> Action>, _ value: T) {
-        actionSubject.send(stateBinding.wrappedState[keyPath: keyPath](value))
+    func send<A>(_ keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
+        send(actionCreator(for: keyPath)(a))
     }
+
+    func send<A, B>(_ keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
+        send(actionCreator(for: keyPath)(a, b))
+    }
+
+    func send<A, B, C>(_ keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
+        send(actionCreator(for: keyPath)(a, b, c))
+    }
+
+    func send<A, B, C, D>(_ keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
+        send(actionCreator(for: keyPath)(a, b, c, d))
+    }
+
+    func send<A, B, C, D, E>(
+        _ keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
+        _ a: A, _ b: B, _ c: C, _ d: D, _ e: E
+    ) {
+        send(actionCreator(for: keyPath)(a, b, c, d, e))
+    }
+    // swiftlint:enable function_parameter_count identifier_name
 }

@@ -36,7 +36,7 @@ struct PingPong: State {
 extension PingPong {
     struct Initialize: Action {}
 
-    struct Increment: Action {
+    struct Addition: Action {
         let keyPath: WritableKeyPath<PingPong, Count>
         let value: Int
     }
@@ -44,28 +44,31 @@ extension PingPong {
 
 extension PingPong {
     var initialize: Action {
-        PingPong.Initialize()
+        Initialize()
     }
 
-    var incrementPing: (Int) -> Action {
+    var addToPing: (Int) -> Action {
         { value in
-            PingPong.Increment(keyPath: \.ping, value: value)
+            Addition(keyPath: \.ping, value: value)
         }
     }
 
-    var incrementPong: (Int) -> Action {
+    var addToPong: (Int) -> Action {
         { value in
-            PingPong.Increment(keyPath: \.pong, value: value)
+            Addition(keyPath: \.pong, value: value)
         }
     }
 }
 
 extension PingPong {
     static func reducer(state: inout PingPong, action: Action) -> PingPong {
-        if action is PingPong.Initialize {
+        switch action {
+        case _ as Initialize:
             return PingPong()
-        } else if let action = action as? PingPong.Increment {
+        case let action as Addition:
             state[keyPath: action.keyPath].count += action.value
+        default:
+            break
         }
 
         return state
