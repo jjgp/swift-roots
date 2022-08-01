@@ -1,24 +1,24 @@
 import Combine
 
-public final class Store<S: State, Action>: Publisher {
+public final class Store<State: Equatable, Action>: Publisher {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables: Set<AnyCancellable> = []
-    private let stateBinding: StateBinding<S>
+    private let stateBinding: StateBinding<State>
 
-    public convenience init(initialState: S,
-                            reducer: @escaping Reducer<S, Action>,
-                            effect: Effect<S, Action>? = nil)
+    public convenience init(initialState: State,
+                            reducer: @escaping Reducer<State, Action>,
+                            effect: Effect<State, Action>? = nil)
     {
         self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
     }
 
-    init(stateBinding: StateBinding<S>,
-         reducer: @escaping Reducer<S, Action>,
-         effect: Effect<S, Action>? = nil)
+    init(stateBinding: StateBinding<State>,
+         reducer: @escaping Reducer<State, Action>,
+         effect: Effect<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
         let transitionPublisher = actionSubject
-            .map { action -> Transition<S, Action> in
+            .map { action -> Transition<State, Action> in
                 var nextState = stateBinding.wrappedState
                 nextState = reducer(&nextState, action)
                 if stateBinding.wrappedState != nextState {
@@ -38,19 +38,18 @@ public final class Store<S: State, Action>: Publisher {
 }
 
 public extension Store {
-    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
-        .Input
+    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Subscriber.Failure == Never, Subscriber.Input == State
     {
         stateBinding.removeDuplicates().receive(subscriber: subscriber)
     }
 
     typealias Failure = Never
-    typealias Output = S
+    typealias Output = State
 }
 
 public extension Store {
-    func scope<StateInScope: State, ActionInScope>(
-        to keyPath: WritableKeyPath<S, StateInScope>,
+    func scope<StateInScope, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
@@ -65,5 +64,13 @@ public extension Store {
 public extension Store {
     func send(_ action: Action) {
         actionSubject.send(action)
+    }
+
+    func send(_ keyPath: KeyPath<State, Action>) {
+        actionSubject.send(stateBinding.wrappedState[keyPath: keyPath])
+    }
+
+    func send<T>(_ keyPath: KeyPath<State, (T) -> Action>, _ value: T) {
+        actionSubject.send(stateBinding.wrappedState[keyPath: keyPath](value))
     }
 }

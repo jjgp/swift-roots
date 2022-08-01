@@ -18,7 +18,7 @@ class SinkEffectTests: XCTestCase {
     }
 }
 
-private extension Effect where S == Count, Action == Count.Action {
+private extension Effect where State == Count, Action == Count.Action {
     static func sinkIncrementedValues(receiveValue: @escaping (Int) -> Void) -> Self {
         .sink { transitionPublisher in
             transitionPublisher

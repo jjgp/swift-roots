@@ -19,8 +19,8 @@ public extension Effect {
         }
     }
 
-    typealias SubjectEffect = (S, Action, @escaping Send) -> Void
-    typealias AsyncSubjectEffect = (S, Action, @escaping Send) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Send) -> Void
+    typealias AsyncSubjectEffect = (State, Action, @escaping Send) async -> Void
 }
 
 public extension ContextEffect {
@@ -42,6 +42,6 @@ public extension ContextEffect {
         }
     }
 
-    typealias SubjectEffect = (S, Action, @escaping Send, Context) -> Void
-    typealias AsyncSubjectEffect = (S, Action, @escaping Send, Context) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Send, Context) -> Void
+    typealias AsyncSubjectEffect = (State, Action, @escaping Send, Context) async -> Void
 }

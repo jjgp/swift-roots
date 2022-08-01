@@ -46,7 +46,7 @@ private extension XCTestCase {
     }
 }
 
-private extension ContextEffect where S == Count, Action == Count.Action, Context == XCTestCase.Context {
+private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
         .subject { state, action, send, context in
             if state.count < context.value, case let .increment(value) = action {
@@ -64,7 +64,7 @@ private extension ContextEffect where S == Count, Action == Count.Action, Contex
     }
 }
 
-private extension Effect where S == Count, Action == Count.Action {
+private extension Effect where State == Count, Action == Count.Action {
     static func incrementTo100() -> Self {
         .subject { state, action, send in
             if state.count < 100, case let .increment(value) = action {

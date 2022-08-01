@@ -33,29 +33,31 @@ struct PingPong: State {
     var pong: Count = .init()
 }
 
-protocol PingPongAction {}
-
 extension PingPong {
     struct Initialize: Action {}
-
-    static var initialize: Initialize {
-        .init()
-    }
 
     struct Increment: Action {
         let keyPath: WritableKeyPath<PingPong, Count>
         let value: Int
     }
+}
 
-    static func ping(_ value: Int) -> Increment {
-        .init(keyPath: \.ping, value: value)
+extension PingPong {
+    var initialize: Action {
+        PingPong.Initialize()
     }
 
-    static func pong(_ value: Int) -> Increment {
-        .init(keyPath: \.pong, value: value)
+    var incrementPing: (Int) -> Action {
+        { value in
+            PingPong.Increment(keyPath: \.ping, value: value)
+        }
     }
 
-    typealias Action = PingPongAction
+    var incrementPong: (Int) -> Action {
+        { value in
+            PingPong.Increment(keyPath: \.pong, value: value)
+        }
+    }
 }
 
 extension PingPong {
