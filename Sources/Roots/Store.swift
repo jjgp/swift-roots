@@ -1,24 +1,24 @@
 import Combine
 
-public final class Store<S: State, Action>: Publisher {
+public final class Store<State: Equatable, Action>: Publisher {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables: Set<AnyCancellable> = []
-    private let stateBinding: StateBinding<S>
+    private let stateBinding: StateBinding<State>
 
-    public convenience init(initialState: S,
-                            reducer: @escaping Reducer<S, Action>,
-                            effect: Effect<S, Action>? = nil)
+    public convenience init(initialState: State,
+                            reducer: @escaping Reducer<State, Action>,
+                            effect: Effect<State, Action>? = nil)
     {
         self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
     }
 
-    init(stateBinding: StateBinding<S>,
-         reducer: @escaping Reducer<S, Action>,
-         effect: Effect<S, Action>? = nil)
+    init(stateBinding: StateBinding<State>,
+         reducer: @escaping Reducer<State, Action>,
+         effect: Effect<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
         let transitionPublisher = actionSubject
-            .map { action -> Transition<S, Action> in
+            .map { action -> Transition<State, Action> in
                 var nextState = stateBinding.wrappedState
                 nextState = reducer(&nextState, action)
                 if stateBinding.wrappedState != nextState {
@@ -38,19 +38,18 @@ public final class Store<S: State, Action>: Publisher {
 }
 
 public extension Store {
-    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Never == Subscriber.Failure, S == Subscriber
-        .Input
+    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Subscriber.Failure == Never, Subscriber.Input == State
     {
         stateBinding.removeDuplicates().receive(subscriber: subscriber)
     }
 
     typealias Failure = Never
-    typealias Output = S
+    typealias Output = State
 }
 
 public extension Store {
-    func scope<StateInScope: State, ActionInScope>(
-        to keyPath: WritableKeyPath<S, StateInScope>,
+    func scope<StateInScope, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
@@ -66,4 +65,39 @@ public extension Store {
     func send(_ action: Action) {
         actionSubject.send(action)
     }
+}
+
+public extension Store {
+    private func actionCreator<T>(for keyPath: KeyPath<State, T>) -> T {
+        stateBinding.wrappedState[keyPath: keyPath]
+    }
+
+    // swiftlint:disable function_parameter_count identifier_name
+    func send(_ keyPath: KeyPath<State, Action>) {
+        send(actionCreator(for: keyPath))
+    }
+
+    func send<A>(_ keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
+        send(actionCreator(for: keyPath)(a))
+    }
+
+    func send<A, B>(_ keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
+        send(actionCreator(for: keyPath)(a, b))
+    }
+
+    func send<A, B, C>(_ keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
+        send(actionCreator(for: keyPath)(a, b, c))
+    }
+
+    func send<A, B, C, D>(_ keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
+        send(actionCreator(for: keyPath)(a, b, c, d))
+    }
+
+    func send<A, B, C, D, E>(
+        _ keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
+        _ a: A, _ b: B, _ c: C, _ d: D, _ e: E
+    ) {
+        send(actionCreator(for: keyPath)(a, b, c, d, e))
+    }
+    // swiftlint:enable function_parameter_count identifier_name
 }

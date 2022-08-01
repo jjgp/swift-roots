@@ -43,7 +43,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(40))
         pongSUT.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(PingPong.initialize)
+        pingPongSUT.send(\.initialize)
 
         // Then each store should emit values that are consistent with one another
         let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -75,20 +75,20 @@ class EffectsOfStoreInScopeTests: XCTestCase {
 
     func testEffectsOfTwinStoresInScope() {
         // Given a store that is scoped to two twin stores having the same increment/decrement effect
-        let pintPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
 
-        let pingSUT = pintPongSUT.scope(
+        let pingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: .decrementByDoubleIncrementedValue()
         )
-        let twinPingSUT = pintPongSUT.scope(
+        let twinPingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
             effect: .decrementByDoubleIncrementedValue()
         )
 
-        let pintPongSpy = PublisherSpy(pintPongSUT)
+        let pintPongSpy = PublisherSpy(pingPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
         let twinPingSpy = PublisherSpy(twinPingSUT)
 
@@ -98,7 +98,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(20))
         twinPingSUT.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        pintPongSUT.send(PingPong.initialize)
+        pingPongSUT.send(\.initialize)
 
         // Then the stores should all have a consistent view of the ping count
         let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -124,7 +124,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
     }
 }
 
-private extension Effect where S == Count, Action == Count.Action {
+private extension Effect where State == Count, Action == Count.Action {
     static func decrementByIncrementedValue() -> Self {
         Effect { transitionPublisher in
             let publisher = transitionPublisher.compactMap { transition -> Count.Action? in

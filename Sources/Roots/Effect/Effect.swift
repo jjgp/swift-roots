@@ -1,6 +1,6 @@
 import Combine
 
-public struct Effect<S: State, Action> {
+public struct Effect<State, Action> {
     public let createArtifacts: CreateArtifacts
 
     public init(createArtifacts: @escaping CreateArtifacts) {
@@ -13,7 +13,7 @@ public struct Effect<S: State, Action> {
     }
 
     public typealias CreateArtifacts = (TransitionPublisher) -> [Artifact]
-    public typealias TransitionPublisher = AnyPublisher<Transition<S, Action>, Never>
+    public typealias TransitionPublisher = AnyPublisher<Transition<State, Action>, Never>
 }
 
 public extension Effect.Artifact {
@@ -27,37 +27,37 @@ public extension Effect.Artifact {
 }
 
 public extension AnyCancellable {
-    func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact {
+    func toEffectArtifact<State, Action>() -> Effect<State, Action>.Artifact {
         .init(self)
     }
 }
 
 public extension Publisher {
-    func toEffectArtifact<S: State, Action>() -> Effect<S, Action>.Artifact where Self.Output == Action, Self.Failure == Never {
-        .init(eraseToAnyPublisher())
+    func toEffectArtifact<State, Action>() -> Effect<State, Action>.Artifact where Self.Output == Action, Self.Failure == Never {
+        .init(self)
     }
 }
 
 public extension Array {
-    init<S: State, Action>(
+    init<State, Action>(
         _ cancellables: AnyCancellable...
-    ) where Self.Element == Effect<S, Action>.Artifact {
+    ) where Self.Element == Effect<State, Action>.Artifact {
         self.init()
         append(contentsOf: cancellables.map { $0.toEffectArtifact() })
     }
 
-    init<P: Publisher, S: State, Action>(
+    init<P: Publisher, State, Action>(
         cancellables: AnyCancellable...,
         publishers: P...
-    ) where Self.Element == Effect<S, Action>.Artifact, P.Output == Action, P.Failure == Never {
+    ) where Self.Element == Effect<State, Action>.Artifact, P.Output == Action, P.Failure == Never {
         self.init()
         append(contentsOf: cancellables.map { $0.toEffectArtifact() })
         append(contentsOf: publishers.map { $0.toEffectArtifact() })
     }
 
-    init<P: Publisher, S: State, Action>(
+    init<P: Publisher, State, Action>(
         _ publishers: P...
-    ) where Self.Element == Effect<S, Action>.Artifact, P.Output == Action, P.Failure == Never {
+    ) where Self.Element == Effect<State, Action>.Artifact, P.Output == Action, P.Failure == Never {
         self.init()
         append(contentsOf: publishers.map { $0.toEffectArtifact() })
     }

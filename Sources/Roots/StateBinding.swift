@@ -1,10 +1,10 @@
 import Combine
 
-public struct StateBinding<S: State>: Publisher {
-    private let getState: () -> S
-    private let setState: (S) -> Void
-    private let statePublisher: AnyPublisher<S, Never>
-    public var wrappedState: S {
+public struct StateBinding<State>: Publisher {
+    private let getState: () -> State
+    private let setState: (State) -> Void
+    private let statePublisher: AnyPublisher<State, Never>
+    public var wrappedState: State {
         get {
             getState()
         }
@@ -14,9 +14,9 @@ public struct StateBinding<S: State>: Publisher {
     }
 
     private init(
-        getState: @escaping () -> S,
-        setState: @escaping (S) -> Void,
-        statePublisher: AnyPublisher<S, Never>
+        getState: @escaping () -> State,
+        setState: @escaping (State) -> Void,
+        statePublisher: AnyPublisher<State, Never>
     ) {
         self.getState = getState
         self.setState = setState
@@ -25,8 +25,8 @@ public struct StateBinding<S: State>: Publisher {
 }
 
 public extension StateBinding {
-    init(initialState: S) {
-        let subject = CurrentValueSubject<S, Never>(initialState)
+    init(initialState: State) {
+        let subject = CurrentValueSubject<State, Never>(initialState)
         self.init(
             getState: {
                 subject.value
@@ -47,11 +47,11 @@ public extension StateBinding {
     }
 
     typealias Failure = Never
-    typealias Output = S
+    typealias Output = State
 }
 
 public extension StateBinding {
-    func scope<StateInScope: State>(_ keyPath: WritableKeyPath<S, StateInScope>) -> StateBinding<StateInScope> {
+    func scope<StateInScope>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: {
                 wrappedState[keyPath: keyPath]

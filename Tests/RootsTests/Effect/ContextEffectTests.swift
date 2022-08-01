@@ -21,7 +21,7 @@ private extension XCTestCase {
     }
 }
 
-private extension ContextEffect where S == Count, Action == Count.Action, Context == XCTestCase.Context {
+private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
         ContextEffect { context in
             Effect { transitionPublisher in
