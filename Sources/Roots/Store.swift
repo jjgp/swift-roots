@@ -38,8 +38,7 @@ public final class Store<State: Equatable, Action>: Publisher {
 }
 
 public extension Store {
-    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Subscriber.Failure == Never, Subscriber.Input == State
-    {
+    func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
         stateBinding.removeDuplicates().receive(subscriber: subscriber)
     }
 
