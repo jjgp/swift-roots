@@ -5,23 +5,9 @@ public final class Store<State, Action>: Publisher {
     private var cancellables: Set<AnyCancellable> = []
     private let stateBinding: StateBinding<State>
 
-    public convenience init(initialState: State,
-                            reducer: @escaping Reducer<State, Action>,
-                            effect: Effect<State, Action>? = nil)
-    {
-        self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
-    }
-
-    public convenience init(initialState: State,
-                            reducer: @escaping Reducer<State, Action>,
-                            effect: Effect<State, Action>? = nil) where State: Equatable
-    {
-        self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
-    }
-
-    init(stateBinding: StateBinding<State>,
-         reducer: @escaping Reducer<State, Action>,
-         effect: Effect<State, Action>? = nil)
+    public init(stateBinding: StateBinding<State>,
+                reducer: @escaping Reducer<State, Action>,
+                effect: Effect<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
         let transitionPublisher = actionSubject
@@ -43,6 +29,22 @@ public final class Store<State, Action>: Publisher {
 }
 
 public extension Store {
+    convenience init(initialState: State,
+                     reducer: @escaping Reducer<State, Action>,
+                     effect: Effect<State, Action>? = nil)
+    {
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+    }
+
+    convenience init(initialState: State,
+                     reducer: @escaping Reducer<State, Action>,
+                     effect: Effect<State, Action>? = nil) where State: Equatable
+    {
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+    }
+}
+
+public extension Store {
     func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
         stateBinding.receive(subscriber: subscriber)
     }
@@ -57,11 +59,7 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        Store<StateInScope, ActionInScope>(
-            stateBinding: stateBinding.scope(keyPath),
-            reducer: reducer,
-            effect: effect
-        )
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
     }
 
     func scope<StateInScope, ActionInScope>(
@@ -69,11 +67,7 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
-        Store<StateInScope, ActionInScope>(
-            stateBinding: stateBinding.scope(keyPath),
-            reducer: reducer,
-            effect: effect
-        )
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
     }
 }
 

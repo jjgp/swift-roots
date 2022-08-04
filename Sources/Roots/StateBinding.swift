@@ -23,12 +23,11 @@ public struct StateBinding<State>: Publisher {
         self.statePublisher = statePublisher
     }
 
-    public typealias Failure = Never
-    public typealias Output = State
+    public typealias IsDuplicate<State> = (State, State) -> Bool
 }
 
 public extension StateBinding {
-    init(initialState: State) {
+    init(initialState: State, predicate: @escaping IsDuplicate<State> = { _, _ in false }) {
         let subject = CurrentValueSubject<State, Never>(initialState)
         self.init(
             getState: {
@@ -37,35 +36,29 @@ public extension StateBinding {
             setState: { newState in
                 subject.value = newState
             },
-            statePublisher: subject.eraseToAnyPublisher()
+            statePublisher: subject.removeDuplicates(by: predicate).eraseToAnyPublisher()
         )
     }
 
     init(initialState: State) where State: Equatable {
-        // TODO:
-        let subject = CurrentValueSubject<State, Never>(initialState)
-        self.init(
-            getState: {
-                subject.value
-            },
-            setState: { newState in
-                subject.value = newState
-            },
-            statePublisher: subject.removeDuplicates().eraseToAnyPublisher()
-        )
+        self.init(initialState: initialState, predicate: ==)
     }
 }
 
 public extension StateBinding {
-    func receive<S: Subscriber>(
-        subscriber: S
-    ) where S.Failure == Failure, S.Input == State {
+    func receive<S: Subscriber>(subscriber: S) where S.Failure == Failure, S.Input == State {
         statePublisher.receive(subscriber: subscriber)
     }
+
+    typealias Failure = Never
+    typealias Output = State
 }
 
 public extension StateBinding {
-    func scope<StateInScope>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> {
+    func scope<StateInScope>(
+        _ keyPath: WritableKeyPath<State, StateInScope>,
+        predicate: @escaping IsDuplicate<StateInScope> = { _, _ in false }
+    ) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: {
                 wrappedState[keyPath: keyPath]
@@ -73,19 +66,11 @@ public extension StateBinding {
             setState: { newState in
                 wrappedState[keyPath: keyPath] = newState
             },
-            statePublisher: statePublisher.map(keyPath).eraseToAnyPublisher()
+            statePublisher: statePublisher.map(keyPath).removeDuplicates(by: predicate).eraseToAnyPublisher()
         )
     }
 
     func scope<StateInScope>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> where StateInScope: Equatable {
-        StateBinding<StateInScope>(
-            getState: {
-                wrappedState[keyPath: keyPath]
-            },
-            setState: { newState in
-                wrappedState[keyPath: keyPath] = newState
-            },
-            statePublisher: statePublisher.map(keyPath).removeDuplicates().eraseToAnyPublisher()
-        )
+        scope(keyPath, predicate: ==)
     }
 }
