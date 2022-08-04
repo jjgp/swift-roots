@@ -10,21 +10,29 @@ public final class Store<State, Action>: Publisher {
                 effect: Effect<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
-        let transitionPublisher = actionSubject
-            .map { action -> Transition<State, Action> in
-                var nextState = stateBinding.wrappedState
-                nextState = reducer(&nextState, action)
-                stateBinding.wrappedState = nextState
-                return Transition(state: nextState, action: action)
-            }
 
+        let transitionPublisher: PassthroughSubject<Transition<State, Action>, Never>!
         if let effect = effect {
+            transitionPublisher = .init()
             let multicastPublisher = transitionPublisher.multicast { PassthroughSubject() }
             effect.apply(multicastPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
             multicastPublisher.connect().store(in: &cancellables)
         } else {
-            transitionPublisher.ignoreOutput().sink { _ in }.store(in: &cancellables)
+            transitionPublisher = nil
         }
+
+        self.stateBinding
+            .zip(actionSubject)
+            .map { _, action -> Transition<State, Action> in
+                var nextState = stateBinding.wrappedState
+                nextState = reducer(&nextState, action)
+                return Transition(state: nextState, action: action)
+            }
+            .sink { transition in
+                stateBinding.wrappedState = transition.state
+                transitionPublisher?.send(transition)
+            }
+            .store(in: &cancellables)
     }
 }
 
