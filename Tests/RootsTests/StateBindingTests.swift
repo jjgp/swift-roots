@@ -53,4 +53,18 @@ class StateBindingTests: XCTestCase {
         XCTAssertEqual(pingValues, [0, 42, 0, 21, 0, 1337, 0])
         XCTAssertEqual(twinPingValues, [0, 42, 0, 21, 0, 1337, 0])
     }
+
+    func testEquatableStateRemovesDuplicates() {
+        // Given a state binding ...
+        let sut = StateBinding(initialState: Count())
+        let spy = PublisherSpy(sut)
+
+        // When ...
+        sut.wrappedState.count = 42
+        sut.wrappedState.count = 42
+
+        // Then each view of the state should be consistent with the other
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 42])
+    }
 }

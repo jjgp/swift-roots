@@ -22,6 +22,9 @@ public struct StateBinding<State>: Publisher {
         self.setState = setState
         self.statePublisher = statePublisher
     }
+
+    public typealias Failure = Never
+    public typealias Output = State
 }
 
 public extension StateBinding {
@@ -37,17 +40,28 @@ public extension StateBinding {
             statePublisher: subject.eraseToAnyPublisher()
         )
     }
+
+    init(initialState: State) where State: Equatable {
+        // TODO:
+        let subject = CurrentValueSubject<State, Never>(initialState)
+        self.init(
+            getState: {
+                subject.value
+            },
+            setState: { newState in
+                subject.value = newState
+            },
+            statePublisher: subject.removeDuplicates().eraseToAnyPublisher()
+        )
+    }
 }
 
 public extension StateBinding {
-    func receive<Subscriber: Combine.Subscriber>(
-        subscriber: Subscriber
-    ) where Failure == Subscriber.Failure, Output == Subscriber.Input {
+    func receive<S: Subscriber>(
+        subscriber: S
+    ) where S.Failure == Failure, S.Input == State {
         statePublisher.receive(subscriber: subscriber)
     }
-
-    typealias Failure = Never
-    typealias Output = State
 }
 
 public extension StateBinding {
@@ -59,7 +73,19 @@ public extension StateBinding {
             setState: { newState in
                 wrappedState[keyPath: keyPath] = newState
             },
-            statePublisher: map(keyPath).eraseToAnyPublisher()
+            statePublisher: statePublisher.map(keyPath).eraseToAnyPublisher()
+        )
+    }
+
+    func scope<StateInScope>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> where StateInScope: Equatable {
+        StateBinding<StateInScope>(
+            getState: {
+                wrappedState[keyPath: keyPath]
+            },
+            setState: { newState in
+                wrappedState[keyPath: keyPath] = newState
+            },
+            statePublisher: statePublisher.map(keyPath).removeDuplicates().eraseToAnyPublisher()
         )
     }
 }

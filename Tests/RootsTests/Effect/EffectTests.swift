@@ -30,6 +30,9 @@ class EffectsOfStoreInScopeTests: XCTestCase {
             reducer: Count.reducer(state:action:),
             effect: .decrementByDoubleIncrementedValue()
         )
+        let sub = pongSUT.sink { value in
+            print(value == value)
+        }
 
         let pingPongSpy = PublisherSpy(pingPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
