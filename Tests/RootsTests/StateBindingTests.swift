@@ -53,4 +53,32 @@ class StateBindingTests: XCTestCase {
         XCTAssertEqual(pingValues, [0, 42, 0, 21, 0, 1337, 0])
         XCTAssertEqual(twinPingValues, [0, 42, 0, 21, 0, 1337, 0])
     }
+
+    func testPredicateRemovesDuplicates() {
+        // Given a state binding with a predicate
+        let sut = StateBinding(initialState: Count(), predicate: ==)
+        let spy = PublisherSpy(sut)
+
+        // When duplicate states are set
+        sut.wrappedState.count = 42
+        sut.wrappedState.count = 42
+
+        // Then the duplicate states should not be published
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 42])
+    }
+
+    func testEquatableStateRemovesDuplicates() {
+        // Given a state binding to a state that is Equatable
+        let sut = StateBinding(initialState: Count())
+        let spy = PublisherSpy(sut)
+
+        // When duplicate states are set
+        sut.wrappedState.count = 42
+        sut.wrappedState.count = 42
+
+        // Then the duplicate states should not be published
+        let values = spy.values.map(\.count)
+        XCTAssertEqual(values, [0, 42])
+    }
 }

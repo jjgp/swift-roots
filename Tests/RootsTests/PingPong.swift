@@ -2,7 +2,7 @@ import Roots
 
 // MARK: Count
 
-struct Count: State {
+struct Count: Equatable {
     var count = 0
 }
 
@@ -28,7 +28,7 @@ extension Count {
 
 // MARK: PingPong
 
-struct PingPong: State {
+struct PingPong: Equatable {
     var ping: Count = .init()
     var pong: Count = .init()
 }

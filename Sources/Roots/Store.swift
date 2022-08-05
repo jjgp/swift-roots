@@ -1,46 +1,56 @@
 import Combine
 
-public final class Store<State: Equatable, Action>: Publisher {
+public final class Store<State, Action>: Publisher {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables: Set<AnyCancellable> = []
     private let stateBinding: StateBinding<State>
 
-    public convenience init(initialState: State,
-                            reducer: @escaping Reducer<State, Action>,
-                            effect: Effect<State, Action>? = nil)
-    {
-        self.init(stateBinding: StateBinding(initialState: initialState), reducer: reducer, effect: effect)
-    }
-
-    init(stateBinding: StateBinding<State>,
-         reducer: @escaping Reducer<State, Action>,
-         effect: Effect<State, Action>? = nil)
+    public init(stateBinding: StateBinding<State>,
+                reducer: @escaping Reducer<State, Action>,
+                effect: Effect<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
-        let transitionPublisher = actionSubject
-            .map { action -> Transition<State, Action> in
-                var nextState = stateBinding.wrappedState
-                nextState = reducer(&nextState, action)
-                if stateBinding.wrappedState != nextState {
-                    stateBinding.wrappedState = nextState
-                }
-                return Transition(state: nextState, action: action)
-            }
 
+        let transitionPublisher: PassthroughSubject<Transition<State, Action>, Never>!
         if let effect = effect {
+            transitionPublisher = .init()
             let multicastPublisher = transitionPublisher.multicast { PassthroughSubject() }
             effect.apply(multicastPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
             multicastPublisher.connect().store(in: &cancellables)
         } else {
-            transitionPublisher.ignoreOutput().sink { _ in }.store(in: &cancellables)
+            transitionPublisher = nil
         }
+
+        actionSubject
+            .sink { action in
+                var nextState = stateBinding.wrappedState
+                nextState = reducer(&nextState, action)
+                stateBinding.wrappedState = nextState
+                transitionPublisher?.send(.init(state: nextState, action: action))
+            }
+            .store(in: &cancellables)
     }
 }
 
 public extension Store {
-    func receive<Subscriber: Combine.Subscriber>(subscriber: Subscriber) where Subscriber.Failure == Never, Subscriber.Input == State
+    convenience init(initialState: State,
+                     reducer: @escaping Reducer<State, Action>,
+                     effect: Effect<State, Action>? = nil)
     {
-        stateBinding.removeDuplicates().receive(subscriber: subscriber)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+    }
+
+    convenience init(initialState: State,
+                     reducer: @escaping Reducer<State, Action>,
+                     effect: Effect<State, Action>? = nil) where State: Equatable
+    {
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+    }
+}
+
+public extension Store {
+    func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
+        stateBinding.receive(subscriber: subscriber)
     }
 
     typealias Failure = Never
@@ -53,11 +63,15 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         effect: Effect<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        Store<StateInScope, ActionInScope>(
-            stateBinding: stateBinding.scope(keyPath),
-            reducer: reducer,
-            effect: effect
-        )
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
+    }
+
+    func scope<StateInScope, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        effect: Effect<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
     }
 }
 
