@@ -11,5 +11,3 @@ other popular frameworks: [Redux](https://github.com/reduxjs/redux),
 [Redux-Observable](https://github.com/redux-observable/redux-observable),
 [ReSwift](https://github.com/ReSwift/ReSwift),
 [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture), and etc.
-
-# Usage
