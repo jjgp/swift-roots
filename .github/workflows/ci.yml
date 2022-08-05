@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on:
   push:
@@ -17,5 +17,4 @@ jobs:
         platform: ["iOS Simulator,name=iPhone 13 Pro Max", "macOS"]
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"
+      - run: xcodebuild test -scheme Roots -destination platform="${{ matrix.platform }}"
