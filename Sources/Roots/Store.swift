@@ -21,16 +21,12 @@ public final class Store<State, Action>: Publisher {
             transitionPublisher = nil
         }
 
-        self.stateBinding
-            .zip(actionSubject)
-            .map { _, action -> Transition<State, Action> in
+        actionSubject
+            .sink { action in
                 var nextState = stateBinding.wrappedState
                 nextState = reducer(&nextState, action)
-                return Transition(state: nextState, action: action)
-            }
-            .sink { transition in
-                stateBinding.wrappedState = transition.state
-                transitionPublisher?.send(transition)
+                stateBinding.wrappedState = nextState
+                transitionPublisher?.send(.init(state: nextState, action: action))
             }
             .store(in: &cancellables)
     }
