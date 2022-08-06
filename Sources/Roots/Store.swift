@@ -3,6 +3,11 @@ import Combine
 public final class Store<State, Action>: Publisher {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables: Set<AnyCancellable> = []
+    private let innerSend: Dispatch<Action>
+    public var state: State {
+        stateBinding.wrappedState
+    }
+
     private let stateBinding: StateBinding<State>
 
     public init(stateBinding: StateBinding<State>,
@@ -21,15 +26,25 @@ public final class Store<State, Action>: Publisher {
             transitionPublisher = nil
         }
 
+        let innerSend = { action in
+            var state = stateBinding.wrappedState
+            stateBinding.wrappedState = reducer(&state, action)
+        }
+
+        self.innerSend = innerSend
+
         actionSubject
             .sink { action in
                 var nextState = stateBinding.wrappedState
                 nextState = reducer(&nextState, action)
                 stateBinding.wrappedState = nextState
+                // TODO: middleware
                 transitionPublisher?.send(.init(state: nextState, action: action))
             }
             .store(in: &cancellables)
     }
+
+    public typealias Send = (Action) -> Void
 }
 
 public extension Store {
@@ -77,7 +92,7 @@ public extension Store {
 
 public extension Store {
     func send(_ action: Action) {
-        actionSubject.send(action)
+        innerSend(action)
     }
 }
 
