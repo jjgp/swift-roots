@@ -33,7 +33,7 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
                     }
                 }
 
-                return [Effect.Artifact](publisher)
+                return [Effect.Cause](publisher)
             }
         }
     }

@@ -7,7 +7,7 @@ public func combine<State, Action>(effects: Effect<State, Action>...) -> Effect<
 public func combine<State, Action>(effects: [Effect<State, Action>]) -> Effect<State, Action> {
     .init { transitionPublisher in
         effects.flatMap { effect in
-            effect.createArtifacts(transitionPublisher)
+            effect.createCauses(transitionPublisher)
         }
     }
 }

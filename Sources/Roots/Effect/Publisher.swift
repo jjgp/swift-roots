@@ -5,7 +5,7 @@ public extension Effect {
         _ effect: @escaping PublisherEffect<P>
     ) -> Self where P.Output == Action, P.Failure == Never {
         self.init { transitionPublisher in
-            [Artifact](effect(transitionPublisher))
+            [Cause](effect(transitionPublisher))
         }
     }
 

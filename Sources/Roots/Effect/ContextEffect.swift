@@ -7,6 +7,5 @@ public struct ContextEffect<State, Action, Context> {
 
     public typealias CreateEffect = (Context) -> Effect
     public typealias Effect = Roots.Effect<State, Action>
-    public typealias Send = Effect.Send
     public typealias TransitionPublisher = Effect.TransitionPublisher
 }

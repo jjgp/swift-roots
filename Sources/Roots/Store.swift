@@ -1,65 +1,46 @@
 import Combine
 
-public final class Store<State, Action>: Publisher {
-    private let actionSubject = PassthroughSubject<Action, Never>()
+public final class Store<State, Action>: StateContainer, Publisher {
     private var cancellables: Set<AnyCancellable> = []
-    private let innerSend: Dispatch<Action>
-    public var state: State {
-        stateBinding.wrappedState
-    }
-
+    private var innerSend: Dispatch<Action>!
     private let stateBinding: StateBinding<State>
 
     public init(stateBinding: StateBinding<State>,
                 reducer: @escaping Reducer<State, Action>,
-                effect: Effect<State, Action>? = nil)
+                middleware: Middleware<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
-
-        let transitionPublisher: PassthroughSubject<Transition<State, Action>, Never>!
-        if let effect = effect {
-            transitionPublisher = .init()
-            let multicastPublisher = transitionPublisher.multicast { PassthroughSubject() }
-            effect.apply(multicastPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
-            multicastPublisher.connect().store(in: &cancellables)
-        } else {
-            transitionPublisher = nil
-        }
 
         let innerSend = { action in
             var state = stateBinding.wrappedState
             stateBinding.wrappedState = reducer(&state, action)
         }
 
-        self.innerSend = innerSend
-
-        actionSubject
-            .sink { action in
-                var nextState = stateBinding.wrappedState
-                nextState = reducer(&nextState, action)
-                stateBinding.wrappedState = nextState
-                // TODO: middleware
-                transitionPublisher?.send(.init(state: nextState, action: action))
+        if let middleware {
+            self.innerSend = { [weak self] _ in
+//                if let self {
+//                    middleware.respond(self), self, innerSend)
+//                }
             }
-            .store(in: &cancellables)
+        } else {
+            self.innerSend = innerSend
+        }
     }
-
-    public typealias Send = (Action) -> Void
 }
 
 public extension Store {
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     effect: Effect<State, Action>? = nil)
+                     middleware _: Middleware<State, Action>? = nil)
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer)
     }
 
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     effect: Effect<State, Action>? = nil) where State: Equatable
+                     middleware _: Middleware<State, Action>? = nil) where State: Equatable
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer)
     }
 }
 
@@ -76,23 +57,31 @@ public extension Store {
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        effect: Effect<StateInScope, ActionInScope>? = nil
+        middleware _: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer)
     }
 
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        effect: Effect<StateInScope, ActionInScope>? = nil
+        middleware _: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer)
     }
 }
 
 public extension Store {
+    func getState() -> State {
+        stateBinding.wrappedState
+    }
+
     func send(_ action: Action) {
         innerSend(action)
+    }
+
+    func toAnyStateContainer() -> AnyStateContainer<State, Action> {
+        AnyStateContainer()
     }
 }
 
@@ -102,28 +91,28 @@ public extension Store {
     }
 
     // swiftlint:disable function_parameter_count identifier_name
-    func send(_ keyPath: KeyPath<State, Action>) {
+    func send(from keyPath: KeyPath<State, Action>) {
         send(actionCreator(for: keyPath))
     }
 
-    func send<A>(_ keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
+    func send<A>(from keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
         send(actionCreator(for: keyPath)(a))
     }
 
-    func send<A, B>(_ keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
+    func send<A, B>(from keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
         send(actionCreator(for: keyPath)(a, b))
     }
 
-    func send<A, B, C>(_ keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
+    func send<A, B, C>(from keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
         send(actionCreator(for: keyPath)(a, b, c))
     }
 
-    func send<A, B, C, D>(_ keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
+    func send<A, B, C, D>(from keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
         send(actionCreator(for: keyPath)(a, b, c, d))
     }
 
     func send<A, B, C, D, E>(
-        _ keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
+        from keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
         _ a: A, _ b: B, _ c: C, _ d: D, _ e: E
     ) {
         send(actionCreator(for: keyPath)(a, b, c, d, e))

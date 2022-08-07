@@ -23,12 +23,12 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         let pingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
         let pongSUT = pingPongSUT.scope(
             to: \.pong,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
 
         let pingPongSpy = PublisherSpy(pingPongSUT)
@@ -43,7 +43,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(40))
         pongSUT.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(\.initialize)
+        pingPongSUT.send(from: \.initialize)
 
         // Then each store should emit values that are consistent with one another
         let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -80,12 +80,12 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         let pingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
         let twinPingSUT = pingPongSUT.scope(
             to: \.ping,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
 
         let pintPongSpy = PublisherSpy(pingPongSUT)
@@ -98,7 +98,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(20))
         twinPingSUT.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(\.initialize)
+        pingPongSUT.send(from: \.initialize)
 
         // Then the stores should all have a consistent view of the ping count
         let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -135,7 +135,7 @@ private extension Effect where State == Count, Action == Count.Action {
                 }
             }
 
-            return [Artifact](publisher)
+            return [Cause](publisher)
         }
     }
 
