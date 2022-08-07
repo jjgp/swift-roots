@@ -16,11 +16,7 @@ public final class Store<State, Action>: StateContainer, Publisher {
         }
 
         if let middleware {
-            self.innerSend = { [weak self] _ in
-//                if let self {
-//                    middleware.respond(self), self, innerSend)
-//                }
-            }
+            self.innerSend = middleware.createDispatch(toAnyStateContainer())(innerSend)
         } else {
             self.innerSend = innerSend
         }
