@@ -47,7 +47,7 @@ extension PingPong {
         Initialize()
     }
 
-    var addTo: (WritableKeyPath<PingPong, Count>, Int) -> Action {
+    var addToCount: (WritableKeyPath<PingPong, Count>, Int) -> Action {
         Addition.init(keyPath:value:)
     }
 }
