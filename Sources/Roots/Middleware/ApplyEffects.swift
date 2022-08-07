@@ -17,6 +17,8 @@ public func apply<State, Action>(effects: [Effect<State, Action>]) -> Middleware
             { action in
                 next(action)
                 transitionPublisher.send(.init(state: store.state, action: action))
+                // TODO: need some way of saving the cancellables
+                print(cancellables)
             }
         }
     }

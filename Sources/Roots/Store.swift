@@ -26,16 +26,16 @@ public final class Store<State, Action>: StateContainer, Publisher {
 public extension Store {
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     middleware _: Middleware<State, Action>? = nil)
+                     middleware: Middleware<State, Action>? = nil)
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
     }
 
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     middleware _: Middleware<State, Action>? = nil) where State: Equatable
+                     middleware: Middleware<State, Action>? = nil) where State: Equatable
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
     }
 }
 
@@ -52,17 +52,17 @@ public extension Store {
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        middleware _: Middleware<StateInScope, ActionInScope>? = nil
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer)
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
     }
 
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        middleware _: Middleware<StateInScope, ActionInScope>? = nil
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer)
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
     }
 }
 
