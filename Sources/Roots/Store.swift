@@ -15,7 +15,7 @@ public final class Store<State, Action>: StateContainer, Publisher {
             stateBinding.wrappedState = reducer(&state, action)
         }
 
-        if let middleware {
+        if let middleware = middleware {
             self.innerSend = middleware.createDispatch(toAnyStateContainer())(innerSend)
         } else {
             self.innerSend = innerSend
@@ -79,14 +79,14 @@ public extension Store {
         var previousState = state
         return AnyStateContainer(
             getState: { [weak self] in
-                guard let self else {
+                guard let self = self else {
                     return previousState
                 }
 
                 return self.state
             },
             send: { [weak self] action in
-                guard let self else {
+                guard let self = self else {
                     return
                 }
 
