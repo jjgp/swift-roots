@@ -5,21 +5,30 @@ public func apply<State, Action>(effects: Effect<State, Action>...) -> Middlewar
 }
 
 public func apply<State, Action>(effects: [Effect<State, Action>]) -> Middleware<State, Action> {
-    var cancellables = Set<AnyCancellable>()
-
-    return .init { store in
-        let transitionPublisher = PassthroughSubject<Transition<State, Action>, Never>()
-        let multicast = transitionPublisher.multicast { PassthroughSubject() }
-        combine(effects: effects).apply(multicast.eraseToAnyPublisher(), store.send(_:), &cancellables)
-        multicast.connect().store(in: &cancellables)
-
-        return { next in
-            { action in
-                next(action)
-                transitionPublisher.send(.init(state: store.state, action: action))
-                // TODO: need some way of saving the cancellables
-                print(cancellables)
-            }
+    .init { store in
+        { next in
+            ApplyEffect(combine(effects: effects), to: store, chainingTo: next).send(_:)
         }
+    }
+}
+
+struct ApplyEffect<State, Action> {
+    private var cancellables = Set<AnyCancellable>()
+    private let next: Dispatch<Action>
+    private let store: AnyStateContainer<State, Action>
+    private let transitionPublisher = PassthroughSubject<Transition<State, Action>, Never>()
+
+    init(_ effect: Effect<State, Action>, to store: AnyStateContainer<State, Action>, chainingTo next: @escaping Dispatch<Action>) {
+        self.next = next
+        self.store = store
+
+        let multicast = transitionPublisher.multicast { PassthroughSubject() }
+        effect.apply(multicast.eraseToAnyPublisher(), store.send(_:), &cancellables)
+        multicast.connect().store(in: &cancellables)
+    }
+
+    func send(_ action: Action) {
+        next(action)
+        transitionPublisher.send(.init(state: store.state, action: action))
     }
 }
