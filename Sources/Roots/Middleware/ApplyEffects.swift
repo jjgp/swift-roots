@@ -7,7 +7,7 @@ public func apply<State, Action>(effects: Effect<State, Action>...) -> Middlewar
 public func apply<State, Action>(effects: [Effect<State, Action>]) -> Middleware<State, Action> {
     .init { store in
         { next in
-            ApplyEffect(combine(effects: effects), to: store, chainingTo: next).send(_:)
+            ApplyEffect(combine(effects: effects), to: store, chainingTo: next).respond(to:)
         }
     }
 }
@@ -27,7 +27,7 @@ struct ApplyEffect<State, Action> {
         multicast.connect().store(in: &cancellables)
     }
 
-    func send(_ action: Action) {
+    func respond(to action: Action) {
         next(action)
         transitionPublisher.send(.init(state: store.state, action: action))
     }
