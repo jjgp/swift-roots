@@ -8,7 +8,8 @@ public protocol StateContainer {
     associatedtype State
     associatedtype Action
 
-    func getState() -> State
+    var state: State { get }
+
     func send(_ action: Action)
     func toAnyStateContainer() -> AnyStateContainer<State, Action>
 }

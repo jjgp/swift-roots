@@ -1,7 +1,6 @@
 import Combine
 
 public final class Store<State, Action>: StateContainer, Publisher {
-    private var cancellables: Set<AnyCancellable> = []
     private var innerSend: Dispatch<Action>!
     private let stateBinding: StateBinding<State>
 
@@ -72,7 +71,7 @@ public extension Store {
 }
 
 public extension Store {
-    func getState() -> State {
+    var state: State {
         stateBinding.wrappedState
     }
 
@@ -81,7 +80,22 @@ public extension Store {
     }
 
     func toAnyStateContainer() -> AnyStateContainer<State, Action> {
-        AnyStateContainer()
+        var previousState = state
+        let getState = { [weak self] in
+            guard let self else {
+                return previousState
+            }
+
+            defer {
+                previousState = self.state
+            }
+
+            return self.state
+        }
+
+        return AnyStateContainer(getState: getState, send: { [weak self] action in
+            self?.send(action)
+        })
     }
 }
 
@@ -89,6 +103,8 @@ public extension Store {
     private func actionCreator<T>(for keyPath: KeyPath<State, T>) -> T {
         stateBinding.wrappedState[keyPath: keyPath]
     }
+
+    // TODO: rename the following...
 
     // swiftlint:disable function_parameter_count identifier_name
     func send(from keyPath: KeyPath<State, Action>) {
