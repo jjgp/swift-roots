@@ -77,21 +77,23 @@ public extension Store {
 
     func toAnyStateContainer() -> AnyStateContainer<State, Action> {
         var previousState = state
-        let getState = { [weak self] in
-            guard let self else {
-                return previousState
-            }
+        return AnyStateContainer(
+            getState: { [weak self] in
+                guard let self else {
+                    return previousState
+                }
 
-            defer {
+                return self.state
+            },
+            send: { [weak self] action in
+                guard let self else {
+                    return
+                }
+
+                self.send(action)
                 previousState = self.state
             }
-
-            return self.state
-        }
-
-        return AnyStateContainer(getState: getState, send: { [weak self] action in
-            self?.send(action)
-        })
+        )
     }
 }
 
