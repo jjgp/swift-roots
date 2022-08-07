@@ -102,32 +102,30 @@ public extension Store {
         stateBinding.wrappedState[keyPath: keyPath]
     }
 
-    // TODO: rename the following...
-
     // swiftlint:disable function_parameter_count identifier_name
-    func send(from keyPath: KeyPath<State, Action>) {
+    func send(by keyPath: KeyPath<State, Action>) {
         send(actionCreator(for: keyPath))
     }
 
-    func send<A>(from keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
+    func send<A>(_ a: A, by keyPath: KeyPath<State, (A) -> Action>) {
         send(actionCreator(for: keyPath)(a))
     }
 
-    func send<A, B>(from keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
+    func send<A, B>(_ a: A, _ b: B, by keyPath: KeyPath<State, (A, B) -> Action>) {
         send(actionCreator(for: keyPath)(a, b))
     }
 
-    func send<A, B, C>(from keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
+    func send<A, B, C>(_ a: A, _ b: B, _ c: C, by keyPath: KeyPath<State, (A, B, C) -> Action>) {
         send(actionCreator(for: keyPath)(a, b, c))
     }
 
-    func send<A, B, C, D>(from keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
+    func send<A, B, C, D>(_ a: A, _ b: B, _ c: C, _ d: D, by keyPath: KeyPath<State, (A, B, C, D) -> Action>) {
         send(actionCreator(for: keyPath)(a, b, c, d))
     }
 
     func send<A, B, C, D, E>(
-        from keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
-        _ a: A, _ b: B, _ c: C, _ d: D, _ e: E
+        _ a: A, _ b: B, _ c: C, _ d: D, _ e: E,
+        by keyPath: KeyPath<State, (A, B, C, D, E) -> Action>
     ) {
         send(actionCreator(for: keyPath)(a, b, c, d, e))
     }
