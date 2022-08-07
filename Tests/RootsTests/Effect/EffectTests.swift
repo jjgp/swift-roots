@@ -43,7 +43,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(40))
         pongSUT.send(.increment(40))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(by: \.initialize)
+        pingPongSUT.send(creator: \.initialize)
 
         // Then each store should emit values that are consistent with one another
         let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
@@ -98,7 +98,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingSUT.send(.increment(20))
         twinPingSUT.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(by: \.initialize)
+        pingPongSUT.send(creator: \.initialize)
 
         // Then the stores should all have a consistent view of the ping count
         let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
