@@ -10,7 +10,7 @@ public final class Store<State, Action>: Publisher, StateContainer {
     {
         self.stateBinding = stateBinding
 
-        let innerSend = { action in
+        let innerSend: Dispatch<Action> = { action in
             var state = stateBinding.wrappedState
             stateBinding.wrappedState = reducer(&state, action)
         }
