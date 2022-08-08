@@ -3,7 +3,25 @@ import RootsTest
 import XCTest
 
 class StoreTests: XCTestCase {
-    func testNonEquatableStore() {}
+    func testActionsOnToDoListStore() {
+        // Given a store with a non-Equatable ToDoList state
+        let todoListStore = Store(initialState: ToDoList(), reducer: toDoListReducer(state:action:))
+        let todoListSpy = PublisherSpy(todoListStore)
+
+        // When sending actions
+        todoListStore.send(.initialize)
+        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello")))
+        todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: ",")))
+        todoListStore.send(.add(toDo: .init(color: "yellow", completed: false, id: 2, text: "world")))
+        todoListStore.send(.add(toDo: .init(color: "green", completed: false, id: 3, text: "!")))
+
+        // Then ...
+        let todoListValues = todoListSpy.values
+        // TODO: assertion on non-Equatable state
+        print(todoListValues)
+    }
+
+    func testToDoListStateBindingDuplicatePredicate() {}
 
     func testInitializeCountStore() {
         // Given a store with a Count state
@@ -53,9 +71,33 @@ class StoreTests: XCTestCase {
         ])
     }
 
-    func testToAnyStateContainer() {}
+    func testCountsStoreToAnyStateContainer() {
+        // Given a store with a Counts state
+        let countsAnyStateContainer = Store(initialState: Counts(), reducer: Counts.reducer(state:action:)).toAnyStateContainer()
 
-    func testStoreInNonEquatableScope() {}
+        // When actions are sent to to add and to initialize
+        // Then the state values should reflect those actions
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+
+        countsAnyStateContainer.send(creator: \.addToCount, passing: \.first, 10)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 10)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+
+        countsAnyStateContainer.send(creator: \.addToCount, passing: \.second, 20)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 10)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 20)
+
+        countsAnyStateContainer.send(creator: \.initialize)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+    }
+
+    func testStoreInToDoScope() {}
+
+    func testStoreInFiltersScope() {}
+
+    func testAllToDoListStoresInScope() {}
 
     func testStoreInFirstCountScope() {
         // Given a store scoped to the first Count state
@@ -111,4 +153,6 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(firstCountValues, [0, 10, -10, 0])
         XCTAssertEqual(secondCountValues, [0, -20, 20, 0])
     }
+
+    func testStoreDeallocation() {}
 }

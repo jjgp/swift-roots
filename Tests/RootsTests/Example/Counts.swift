@@ -1,6 +1,6 @@
 import Roots
 
-// MARK: Count
+// MARK: - Count
 
 struct Count: Equatable {
     var count = 0
@@ -26,7 +26,7 @@ extension Count {
     }
 }
 
-// MARK: Counts
+// MARK: - Counts
 
 struct Counts: Equatable {
     var first: Count = .init()
