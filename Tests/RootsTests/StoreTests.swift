@@ -3,6 +3,8 @@ import RootsTest
 import XCTest
 
 class StoreTests: XCTestCase {
+    func testNonEquatableStore() {}
+
     func testInitializeCountStore() {
         // Given a store with a Count state
         let countStore = Store(initialState: Count(), reducer: Count.reducer(state:action:))
@@ -50,9 +52,11 @@ class StoreTests: XCTestCase {
             "0, 0",
         ])
     }
-}
 
-class StoreInScopeTests: XCTestCase {
+    func testToAnyStateContainer() {}
+
+    func testStoreInNonEquatableScope() {}
+
     func testStoreInFirstCountScope() {
         // Given a store scoped to the first Count state
         let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
