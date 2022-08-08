@@ -44,12 +44,12 @@ class StoreTests: XCTestCase {
         countsStore.send(creator: \.initialize)
 
         // Then the state values should reflect those actions
-        let countsValues = countsSpy.values.map { "\($0.first.count), \($0.second.count)" }
+        let countsValues = countsSpy.values.map { [$0.first.count, $0.second.count] }
         XCTAssertEqual(countsValues, [
-            "0, 0",
-            "10, 0",
-            "10, 20",
-            "0, 0",
+            [0, 0],
+            [10, 0],
+            [10, 20],
+            [0, 0],
         ])
     }
 
