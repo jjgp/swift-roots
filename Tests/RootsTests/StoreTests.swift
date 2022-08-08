@@ -72,8 +72,9 @@ class StoreTests: XCTestCase {
     }
 
     func testCountsStoreToAnyStateContainer() {
-        // Given a store with a Counts state
-        let countsAnyStateContainer = Store(initialState: Counts(), reducer: Counts.reducer(state:action:)).toAnyStateContainer()
+        // Given a store with a Counts state that is converted to any StateContainer
+        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let countsAnyStateContainer = countsStore.toAnyStateContainer()
 
         // When actions are sent to to add and to initialize
         // Then the state values should reflect those actions
@@ -87,6 +88,29 @@ class StoreTests: XCTestCase {
         countsAnyStateContainer.send(creator: \.addToCount, passing: \.second, 20)
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 10)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 20)
+
+        countsAnyStateContainer.send(creator: \.initialize)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+    }
+
+    func testToAnyStateContainerDoesNotRetainStore() {
+        // Given a store with a Counts state that is converted to any StateContainer
+        let countsAnyStateContainer = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+            .toAnyStateContainer() // The original store is not stored in local scope and deallocates
+
+        // When actions are sent to to add and to initialize
+        // Then the state values should be unaffected
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+
+        countsAnyStateContainer.send(creator: \.addToCount, passing: \.first, 10)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
+
+        countsAnyStateContainer.send(creator: \.addToCount, passing: \.second, 20)
+        XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
+        XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
         countsAnyStateContainer.send(creator: \.initialize)
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
