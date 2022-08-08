@@ -18,15 +18,15 @@ class EffectTests: XCTestCase {
 class EffectsOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
         // Given a store that is scoped to two individual stores having the same increment/decrement effect
-        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pingPongSUT = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
 
         let pingSUT = pingPongSUT.scope(
-            to: \.ping,
+            to: \.first,
             reducer: Count.reducer(state:action:),
             middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
         let pongSUT = pingPongSUT.scope(
-            to: \.pong,
+            to: \.second,
             reducer: Count.reducer(state:action:),
             middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
@@ -46,7 +46,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingPongSUT.send(creator: \.initialize)
 
         // Then each store should emit values that are consistent with one another
-        let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingPongValues = pingPongSpy.values.map { "\($0.first.count), \($0.second.count)" }
         let pingValues = pingSpy.values.map(\.count)
         let pongValues = pongSpy.values.map(\.count)
         // Note that the ping/pong values are interleaved
@@ -75,15 +75,15 @@ class EffectsOfStoreInScopeTests: XCTestCase {
 
     func testEffectsOfTwinStoresInScope() {
         // Given a store that is scoped to two twin stores having the same increment/decrement effect
-        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
+        let pingPongSUT = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
 
         let pingSUT = pingPongSUT.scope(
-            to: \.ping,
+            to: \.first,
             reducer: Count.reducer(state:action:),
             middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
         let twinPingSUT = pingPongSUT.scope(
-            to: \.ping,
+            to: \.first,
             reducer: Count.reducer(state:action:),
             middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
@@ -101,7 +101,7 @@ class EffectsOfStoreInScopeTests: XCTestCase {
         pingPongSUT.send(creator: \.initialize)
 
         // Then the stores should all have a consistent view of the ping count
-        let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
+        let pingPongValues = pintPongSpy.values.map { "\($0.first.count), \($0.second.count)" }
         let pingValues = pingSpy.values.map(\.count)
         let twinPingValues = twinPingSpy.values.map(\.count)
         XCTAssertEqual(

@@ -5,21 +5,21 @@ import XCTest
 class StateBindingTests: XCTestCase {
     func testBindingInScope() {
         // Given a state binding that is scoped to a nested state
-        let pingPong = PingPong()
+        let pingPong = Counts()
 
         let pingPongSUT = StateBinding(initialState: pingPong)
-        let pingSUT = pingPongSUT.scope(\.ping)
+        let pingSUT = pingPongSUT.scope(\.first)
 
         let pingPongSpy = PublisherSpy(pingPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
 
         // When either binding is mutated
         pingSUT.wrappedState.count = 42
-        pingPongSUT.wrappedState.ping.count = 21
+        pingPongSUT.wrappedState.first.count = 21
         pingSUT.wrappedState.count = 1337
 
         // Then each view of the state should be consistent with the other
-        let pingPongPingValues = pingPongSpy.values.map(\.ping.count)
+        let pingPongPingValues = pingPongSpy.values.map(\.first.count)
         let pingValues = pingSpy.values.map(\.count)
         XCTAssertEqual(pingPongPingValues, [0, 42, 21, 1337])
         XCTAssertEqual(pingValues, [0, 42, 21, 1337])
@@ -27,11 +27,11 @@ class StateBindingTests: XCTestCase {
 
     func testTwinBindingsInScope() {
         // Given a state binding that is scoped to twin nested states
-        let pingPong = PingPong()
+        let pingPong = Counts()
 
         let pingPongSUT = StateBinding(initialState: pingPong)
-        let pingSUT = pingPongSUT.scope(\.ping)
-        let twinPingSUT = pingPongSUT.scope(\.ping)
+        let pingSUT = pingPongSUT.scope(\.first)
+        let twinPingSUT = pingPongSUT.scope(\.first)
 
         let pingPongSpy = PublisherSpy(pingPongSUT)
         let pingSpy = PublisherSpy(pingSUT)
@@ -40,13 +40,13 @@ class StateBindingTests: XCTestCase {
         // When any binding is mutated
         pingSUT.wrappedState.count = 42
         twinPingSUT.wrappedState.count -= 42
-        pingPongSUT.wrappedState.ping.count = 21
+        pingPongSUT.wrappedState.first.count = 21
         twinPingSUT.wrappedState.count -= 21
         pingSUT.wrappedState.count = 1337
         twinPingSUT.wrappedState.count -= 1337
 
         // Then any view of the state should be consistent with the other
-        let pingPongPingValues = pingPongSpy.values.map(\.ping.count)
+        let pingPongPingValues = pingPongSpy.values.map(\.first.count)
         let pingValues = pingSpy.values.map(\.count)
         let twinPingValues = twinPingSpy.values.map(\.count)
         XCTAssertEqual(pingPongPingValues, [0, 42, 0, 21, 0, 1337, 0])

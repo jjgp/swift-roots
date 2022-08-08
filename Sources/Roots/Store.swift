@@ -23,6 +23,8 @@ public final class Store<State, Action>: Publisher, StateContainer {
     }
 }
 
+// MARK: - Convenience initializers
+
 public extension Store {
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
@@ -39,6 +41,8 @@ public extension Store {
     }
 }
 
+// MARK: - Publisher conformance
+
 public extension Store {
     func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
         stateBinding.receive(subscriber: subscriber)
@@ -47,6 +51,8 @@ public extension Store {
     typealias Failure = Never
     typealias Output = State
 }
+
+// MARK: - StateContainer conformance
 
 public extension Store {
     var state: State {
@@ -78,6 +84,8 @@ public extension Store {
         )
     }
 }
+
+// MARK: - Store in scope
 
 public extension Store {
     func scope<StateInScope, ActionInScope>(
