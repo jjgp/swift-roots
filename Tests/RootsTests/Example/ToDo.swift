@@ -14,6 +14,23 @@ struct Filters {
     var status: Status = .all
 }
 
+func == (lhs: Filters.Status, rhs: Filters.Status) -> Bool {
+    switch (lhs, rhs) {
+    case (.all, .all), (.completed, .completed), (.incomplete, .incomplete):
+        return true
+    default:
+        return false
+    }
+}
+
+func == (lhs: Filters, rhs: Filters) -> Bool {
+    lhs.colors == rhs.colors && lhs.status == rhs.status
+}
+
+func != (lhs: Filters, rhs: Filters) -> Bool {
+    !(lhs == rhs)
+}
+
 enum FiltersActions {
     case add(color: String)
     case clearColors
@@ -44,6 +61,14 @@ struct ToDo {
     var text: String
 }
 
+func == (lhs: ToDo, rhs: ToDo) -> Bool {
+    lhs.color == rhs.color && lhs.completed == rhs.completed && lhs.id == rhs.id && lhs.text == rhs.text
+}
+
+func != (lhs: ToDo, rhs: ToDo) -> Bool {
+    !(lhs == rhs)
+}
+
 enum ToDoActions {
     case setColor(String, id: Int)
     case setCompleted(Bool, id: Int)
@@ -70,6 +95,24 @@ struct ToDoList {
     var todos: [Int: ToDo] = [:]
 }
 
+func == (lhs: ToDoList, rhs: ToDoList) -> Bool {
+    if lhs.filters != rhs.filters {
+        return false
+    }
+
+    if lhs.order != rhs.order {
+        return false
+    }
+
+    for (key, value) in lhs.todos {
+        guard let todos = rhs.todos[key], todos == value else {
+            return false
+        }
+    }
+
+    return true
+}
+
 enum ToDoListActions {
     case add(toDo: ToDo)
     case clearFilters
@@ -82,14 +125,19 @@ func toDoListReducer(state: inout ToDoList, action: ToDoListActions) -> ToDoList
     switch action {
     case let .add(toDo: toDo):
         state.todos[toDo.id] = toDo
+        state.order.append(toDo.id)
     case .clearFilters:
         state.filters = .init()
     case .clearToDos:
         state.todos.removeAll()
+        state.order.removeAll()
     case .initialize:
         state = .init()
     case let .removeToDo(id: id):
         state.todos.removeValue(forKey: id)
+        state.order.removeAll(where: {
+            $0 == id
+        })
     }
     return state
 }

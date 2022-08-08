@@ -10,18 +10,58 @@ class StoreTests: XCTestCase {
 
         // When sending actions
         todoListStore.send(.initialize)
-        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello")))
-        todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: ",")))
-        todoListStore.send(.add(toDo: .init(color: "yellow", completed: false, id: 2, text: "world")))
-        todoListStore.send(.add(toDo: .init(color: "green", completed: false, id: 3, text: "!")))
+        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello,")))
+        todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: " world!")))
 
         // Then ...
         let todoListValues = todoListSpy.values
-        // TODO: assertion on non-Equatable state
-        print(todoListValues)
+        // there should be 6 published values
+        XCTAssertEqual(todoListValues.count, 4)
+        // the first and second are the initial and .initialize states
+        XCTAssertTrue(todoListValues[0] == todoListValues[1])
+        // after adding the first ToDo
+        XCTAssertTrue(todoListValues[2].order == [0])
+        XCTAssertEqual(todoListValues[2].todos[0]?.color, "red")
+        XCTAssertEqual(todoListValues[2].todos[0]?.completed, false)
+        XCTAssertEqual(todoListValues[2].todos[0]?.id, 0)
+        XCTAssertEqual(todoListValues[2].todos[0]?.text, "hello,")
+        // after adding the other ToDo
+        XCTAssertTrue(todoListValues[3].order == [0, 1])
+        XCTAssertEqual(todoListValues[3].todos[1]?.color, "orange")
+        XCTAssertEqual(todoListValues[3].todos[1]?.completed, false)
+        XCTAssertEqual(todoListValues[3].todos[1]?.id, 1)
+        XCTAssertEqual(todoListValues[3].todos[1]?.text, " world!")
     }
 
-    func testToDoListStateBindingDuplicatePredicate() {}
+    func testToDoListStateBindingDuplicatePredicate() {
+        let todoListStateBinding = StateBinding(initialState: ToDoList(), predicate: ==)
+        let todoListStore = Store(stateBinding: todoListStateBinding, reducer: toDoListReducer(state:action:))
+        let todoListSpy = PublisherSpy(todoListStore)
+
+        // When sending actions
+        todoListStore.send(.initialize)
+        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello,")))
+        todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: " world!")))
+
+        // Then ...
+        let todoListValues = todoListSpy.values
+        // there should be 6 published values
+        XCTAssertEqual(todoListValues.count, 3)
+        // the first published value is the initial state
+        XCTAssertTrue(todoListValues[0] == .init())
+        // after adding the first ToDo
+        XCTAssertTrue(todoListValues[1].order == [0])
+        XCTAssertEqual(todoListValues[1].todos[0]?.color, "red")
+        XCTAssertEqual(todoListValues[1].todos[0]?.completed, false)
+        XCTAssertEqual(todoListValues[1].todos[0]?.id, 0)
+        XCTAssertEqual(todoListValues[1].todos[0]?.text, "hello,")
+        // after adding the other ToDo
+        XCTAssertTrue(todoListValues[2].order == [0, 1])
+        XCTAssertEqual(todoListValues[2].todos[1]?.color, "orange")
+        XCTAssertEqual(todoListValues[2].todos[1]?.completed, false)
+        XCTAssertEqual(todoListValues[2].todos[1]?.id, 1)
+        XCTAssertEqual(todoListValues[2].todos[1]?.text, " world!")
+    }
 
     func testInitializeCountStore() {
         // Given a store with a Count state
