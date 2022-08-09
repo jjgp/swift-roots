@@ -157,20 +157,74 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
     }
 
-    func testStoreInToDoScope() {
-        // Given a store scoped to the ToDo dictionary state
+    func testAllToDoListStoresInScope() {
+        // Given all scoped ToDo stores
         let todoListStore = Store(initialState: ToDoList(), reducer: toDoListReducer(state:action:))
+        let filtersStore = todoListStore.scope(to: \.filters, reducer: filtersReducer(state:action:))
         let todoStore = todoListStore.scope(to: \.todos, reducer: toDoReducer(state:action:))
 
         let todoListSpy = PublisherSpy(todoListStore)
+        let filtersSpy = PublisherSpy(filtersStore)
         let todoSpy = PublisherSpy(todoStore)
 
         // When sending actions to the scoped store
+        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello, world!")))
+        filtersStore.send(.add(color: "red"))
+        todoStore.send(.setColor("orange", id: 0))
+
+        // Then each store should emit consistent state values
+        let todoListValues = todoListSpy.values
+        let filtersValues = filtersSpy.values
+        let todoValues = todoSpy.values
+        XCTAssertEqual(todoListValues.count, 4)
+        XCTAssertTrue(todoListValues[0] == .init())
+        XCTAssertTrue(todoListValues[1].todos == todoValues[1])
+        XCTAssertTrue(todoListValues[2].filters == filtersValues[2])
+        XCTAssertTrue(todoListValues[3].todos == todoValues[3])
+        XCTAssertEqual(filtersValues.count, 4)
+        XCTAssertTrue(filtersValues[0] == .init())
+        XCTAssertTrue(filtersValues[1] == .init())
+        XCTAssertTrue(filtersValues[2] == .init(colors: ["red"]))
+        XCTAssertTrue(filtersValues[3] == .init(colors: ["red"]))
+        XCTAssertEqual(todoValues.count, 4)
+        XCTAssertTrue(todoValues[0] == .init())
+        XCTAssertTrue(todoValues[1] == [0: .init(color: "red", completed: false, id: 0, text: "hello, world!")])
+        XCTAssertTrue(todoValues[2] == [0: .init(color: "red", completed: false, id: 0, text: "hello, world!")])
+        XCTAssertTrue(todoValues[3] == [0: .init(color: "orange", completed: false, id: 0, text: "hello, world!")])
     }
 
-    func testStoreInFiltersScope() {}
+    func testAllToDoListStoresInScopeWithIsDuplicatePredicate() {
+        // Given all scoped ToDo stores with a duplicate predicate
+        let todoListStore = Store(stateBinding: .init(initialState: ToDoList(), isDuplicate: ==), reducer: toDoListReducer(state:action:))
+        let filtersStore = todoListStore.scope(to: \.filters, isDuplicate: ==, reducer: filtersReducer(state:action:))
+        let todoStore = todoListStore.scope(to: \.todos, isDuplicate: ==, reducer: toDoReducer(state:action:))
 
-    func testAllToDoListStoresInScope() {}
+        let todoListSpy = PublisherSpy(todoListStore)
+        let filtersSpy = PublisherSpy(filtersStore)
+        let todoSpy = PublisherSpy(todoStore)
+
+        // When sending actions to the scoped store
+        todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello, world!")))
+        filtersStore.send(.add(color: "red"))
+        todoStore.send(.setColor("orange", id: 0))
+
+        // Then each store should emit consistent state values
+        let todoListValues = todoListSpy.values
+        let filtersValues = filtersSpy.values
+        let todoValues = todoSpy.values
+        XCTAssertEqual(todoListValues.count, 4)
+        XCTAssertTrue(todoListValues[0] == .init())
+        XCTAssertTrue(todoListValues[1].todos == todoValues[1])
+        XCTAssertTrue(todoListValues[2].filters == filtersValues[1])
+        XCTAssertTrue(todoListValues[3].todos == todoValues[2])
+        XCTAssertEqual(filtersValues.count, 2)
+        XCTAssertTrue(filtersValues[0] == .init())
+        XCTAssertTrue(filtersValues[1] == .init(colors: ["red"]))
+        XCTAssertEqual(todoValues.count, 3)
+        XCTAssertTrue(todoValues[0] == .init())
+        XCTAssertTrue(todoValues[1] == [0: .init(color: "red", completed: false, id: 0, text: "hello, world!")])
+        XCTAssertTrue(todoValues[2] == [0: .init(color: "orange", completed: false, id: 0, text: "hello, world!")])
+    }
 
     func testStoreInFirstCountScope() {
         // Given a store scoped to the first Count state

@@ -27,10 +27,6 @@ func == (lhs: Filters, rhs: Filters) -> Bool {
     lhs.colors == rhs.colors && lhs.status == rhs.status
 }
 
-func != (lhs: Filters, rhs: Filters) -> Bool {
-    !(lhs == rhs)
-}
-
 enum FiltersActions {
     case add(color: String)
     case clearColors
@@ -65,10 +61,6 @@ func == (lhs: ToDo, rhs: ToDo) -> Bool {
     lhs.color == rhs.color && lhs.completed == rhs.completed && lhs.id == rhs.id && lhs.text == rhs.text
 }
 
-func != (lhs: ToDo, rhs: ToDo) -> Bool {
-    !(lhs == rhs)
-}
-
 enum ToDoActions {
     case setColor(String, id: Int)
     case setCompleted(Bool, id: Int)
@@ -95,22 +87,22 @@ struct ToDoList {
     var todos: [Int: ToDo] = [:]
 }
 
-func == (lhs: ToDoList, rhs: ToDoList) -> Bool {
-    if lhs.filters != rhs.filters {
+func == (lhs: [Int: ToDo], rhs: [Int: ToDo]) -> Bool {
+    if lhs.count != rhs.count {
         return false
     }
 
-    if lhs.order != rhs.order {
-        return false
-    }
-
-    for (key, value) in lhs.todos {
-        guard let todos = rhs.todos[key], todos == value else {
+    for (key, value) in lhs {
+        guard let todo = rhs[key], todo == value else {
             return false
         }
     }
 
     return true
+}
+
+func == (lhs: ToDoList, rhs: ToDoList) -> Bool {
+    lhs.filters == rhs.filters && lhs.order == rhs.order && lhs.todos == rhs.todos
 }
 
 enum ToDoListActions {
