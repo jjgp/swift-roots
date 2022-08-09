@@ -98,7 +98,7 @@ public extension Store {
 
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
-        isDuplicate predicate: @escaping IsDuplicatePredicate<StateInScope>,
+        isDuplicate predicate: @escaping (StateInScope, StateInScope) -> Bool,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {

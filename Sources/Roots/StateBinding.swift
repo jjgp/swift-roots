@@ -1,7 +1,5 @@
 import Combine
 
-public typealias IsDuplicatePredicate<State> = (State, State) -> Bool
-
 public struct StateBinding<State>: Publisher {
     private let getState: () -> State
     private let setState: (State) -> Void
@@ -27,7 +25,7 @@ public struct StateBinding<State>: Publisher {
 }
 
 public extension StateBinding {
-    init(initialState: State, isDuplicate predicate: @escaping IsDuplicatePredicate<State> = { _, _ in false }) {
+    init(initialState: State, isDuplicate predicate: @escaping (State, State) -> Bool = { _, _ in false }) {
         let subject = CurrentValueSubject<State, Never>(initialState)
         self.init(
             getState: {
@@ -57,7 +55,7 @@ public extension StateBinding {
 public extension StateBinding {
     func scope<StateInScope>(
         _ keyPath: WritableKeyPath<State, StateInScope>,
-        isDuplicate predicate: @escaping IsDuplicatePredicate<StateInScope> = { _, _ in false }
+        isDuplicate predicate: @escaping (StateInScope, StateInScope) -> Bool = { _, _ in false }
     ) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: {
