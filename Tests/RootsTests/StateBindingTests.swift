@@ -52,9 +52,30 @@ class StateBindingTests: XCTestCase {
         XCTAssertEqual(otherFirstCountValues, [0, 42, 0, 21, 0, 1337, 0])
     }
 
+    func testScopePredicateRemovesDuplicates() {
+        // Given a state binding that is scoped to a nested state
+        let counts = Counts()
+        let countsStateBinding = StateBinding(initialState: counts)
+        let firstCountStateBinding = countsStateBinding.scope(\.first, isDuplicate: ==)
+
+        let countsSpy = PublisherSpy(countsStateBinding)
+        let firstCountSpy = PublisherSpy(firstCountStateBinding)
+
+        // When either binding is mutated
+        firstCountStateBinding.wrappedState.count = 42
+        countsStateBinding.wrappedState.first.count = 21
+        firstCountStateBinding.wrappedState.count = 1337
+
+        // Then each view of the state should be consistent with the other
+        let countsValues = countsSpy.values.map(\.first.count)
+        let firstCountValues = firstCountSpy.values.map(\.count)
+        XCTAssertEqual(countsValues, [0, 42, 21, 1337])
+        XCTAssertEqual(firstCountValues, [0, 42, 21, 1337])
+    }
+
     func testPredicateRemovesDuplicates() {
         // Given a state binding with a predicate
-        let countStateBinding = StateBinding(initialState: Count(), predicate: ==)
+        let countStateBinding = StateBinding(initialState: Count(), isDuplicate: ==)
         let countSpy = PublisherSpy(countStateBinding)
 
         // When duplicate states are set

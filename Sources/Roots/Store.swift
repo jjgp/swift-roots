@@ -98,9 +98,18 @@ public extension Store {
 
     func scope<StateInScope, ActionInScope>(
         to keyPath: WritableKeyPath<State, StateInScope>,
+        isDuplicate predicate: @escaping IsDuplicatePredicate<StateInScope>,
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         middleware: Middleware<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
+    ) -> Store<StateInScope, ActionInScope> {
+        .init(stateBinding: stateBinding.scope(keyPath, isDuplicate: predicate), reducer: reducer, middleware: middleware)
+    }
+
+    func scope<StateInScope: Equatable, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> {
         .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
     }
 }

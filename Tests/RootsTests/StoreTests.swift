@@ -34,7 +34,7 @@ class StoreTests: XCTestCase {
     }
 
     func testToDoListStateBindingDuplicatePredicate() {
-        let todoListStateBinding = StateBinding(initialState: ToDoList(), predicate: ==)
+        let todoListStateBinding = StateBinding(initialState: ToDoList(), isDuplicate: ==)
         let todoListStore = Store(stateBinding: todoListStateBinding, reducer: toDoListReducer(state:action:))
         let todoListSpy = PublisherSpy(todoListStore)
 
@@ -157,7 +157,16 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
     }
 
-    func testStoreInToDoScope() {}
+    func testStoreInToDoScope() {
+        // Given a store scoped to the ToDo dictionary state
+        let todoListStore = Store(initialState: ToDoList(), reducer: toDoListReducer(state:action:))
+        let todoStore = todoListStore.scope(to: \.todos, reducer: toDoReducer(state:action:))
+
+        let todoListSpy = PublisherSpy(todoListStore)
+        let todoSpy = PublisherSpy(todoStore)
+
+        // When sending actions to the scoped store
+    }
 
     func testStoreInFiltersScope() {}
 
