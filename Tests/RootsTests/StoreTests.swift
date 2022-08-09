@@ -185,11 +185,11 @@ class StoreTests: XCTestCase {
         XCTAssertTrue(filtersValues[0] == .init())
         XCTAssertTrue(filtersValues[1] == .init())
         XCTAssertTrue(filtersValues[2] == .init(colors: ["red"]))
-        XCTAssertTrue(filtersValues[3] == .init(colors: ["red"]))
+        XCTAssertTrue(filtersValues[2] == filtersValues[3])
         XCTAssertEqual(todoValues.count, 4)
         XCTAssertTrue(todoValues[0] == .init())
         XCTAssertTrue(todoValues[1] == [0: .init(color: "red", completed: false, id: 0, text: "hello, world!")])
-        XCTAssertTrue(todoValues[2] == [0: .init(color: "red", completed: false, id: 0, text: "hello, world!")])
+        XCTAssertTrue(todoValues[1] == todoValues[2])
         XCTAssertTrue(todoValues[3] == [0: .init(color: "orange", completed: false, id: 0, text: "hello, world!")])
     }
 
@@ -280,6 +280,4 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(firstCountValues, [0, 10, -10, 0])
         XCTAssertEqual(secondCountValues, [0, -20, 20, 0])
     }
-
-    func testStoreDeallocation() {}
 }
