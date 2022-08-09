@@ -248,19 +248,19 @@ class StoreTests: XCTestCase {
 
     func testAllCountsStoresInScope() {
         // Given a all Count(s) stores
-        let countsStores = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
-        let firstCountStore = countsStores.scope(to: \.first, reducer: Count.reducer(state:action:))
-        let secondCountStore = countsStores.scope(to: \.second, reducer: Count.reducer(state:action:))
+        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let firstCountStore = countsStore.scope(to: \.first, reducer: Count.reducer(state:action:))
+        let secondCountStore = countsStore.scope(to: \.second, reducer: Count.reducer(state:action:))
 
-        let countsSpy = PublisherSpy(countsStores)
+        let countsSpy = PublisherSpy(countsStore)
         let firstCountSpy = PublisherSpy(firstCountStore)
         let secondCountSpy = PublisherSpy(secondCountStore)
 
         // When sending actions to all stores
         firstCountStore.send(.increment(10))
-        countsStores.send(creator: \.addToCount, passing: \.first, -20)
+        countsStore.send(creator: \.addToCount, passing: \.first, -20)
         secondCountStore.send(.decrement(20))
-        countsStores.send(creator: \.addToCount, passing: \.second, 40)
+        countsStore.send(creator: \.addToCount, passing: \.second, 40)
         firstCountStore.send(.initialize)
         secondCountStore.send(.initialize)
 
@@ -279,5 +279,35 @@ class StoreTests: XCTestCase {
         ])
         XCTAssertEqual(firstCountValues, [0, 10, -10, 0])
         XCTAssertEqual(secondCountValues, [0, -20, 20, 0])
+    }
+
+    func testSendingFromASubscription() {
+        // TODO: this case raises the point that there should likely be a buffer to store actions
+        // while the store is processing an action.
+
+        // Given a all Count(s) stores
+        let countStore = Store(initialState: Count(), reducer: Count.reducer(state:action:))
+        let countSpy = PublisherSpy(countStore)
+
+        let expectation = expectation(description: "decrement happens for each increment")
+        expectation.expectedFulfillmentCount = 2
+        let sub = countStore.sink { [weak countStore] state in
+            print("in sink: ", state, countSpy.values)
+            if state.count == 10 {
+                countStore?.send(.decrement(10))
+            } else if countSpy.values.count == 5 {
+                expectation.fulfill()
+            }
+        }
+        defer { sub.cancel() }
+
+        // When sending actions to all stores
+        countStore.send(.increment(10))
+        countStore.send(.increment(10))
+
+        wait(for: [expectation], timeout: 1)
+
+        let countValues = countSpy.values.map(\.count)
+        XCTAssertEqual(countValues, [0, 10, 0, 10, 0])
     }
 }
