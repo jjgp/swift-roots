@@ -13,7 +13,7 @@ class StoreTests: XCTestCase {
         todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello,")))
         todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: " world!")))
 
-        // Then ...
+        // Then the published states should have redundancy
         let todoListValues = todoListSpy.values
         // there should be 6 published values
         XCTAssertEqual(todoListValues.count, 4)
@@ -43,7 +43,7 @@ class StoreTests: XCTestCase {
         todoListStore.send(.add(toDo: .init(color: "red", completed: false, id: 0, text: "hello,")))
         todoListStore.send(.add(toDo: .init(color: "orange", completed: false, id: 1, text: " world!")))
 
-        // Then ...
+        // Then the published states should not have redundancy
         let todoListValues = todoListSpy.values
         // there should be 6 published values
         XCTAssertEqual(todoListValues.count, 3)
@@ -298,10 +298,6 @@ class StoreTests: XCTestCase {
             }
         }
 
-        defer {
-            sub.cancel()
-        }
-
         // When sending actions to increment
         countStore.send(.increment(10))
         countStore.send(.increment(10))
@@ -309,5 +305,6 @@ class StoreTests: XCTestCase {
         // Then the decrements should be interleaved correctly despite the recursive send
         let countValues = countSpy.values.map(\.count)
         XCTAssertEqual(countValues, [0, 10, 0, 10, 0])
+        sub.cancel()
     }
 }

@@ -1,8 +1,8 @@
-func combine<State, Action>(middlewares: Middleware<State, Action>...) -> Middleware<State, Action> {
+public func combine<State, Action>(middlewares: Middleware<State, Action>...) -> Middleware<State, Action> {
     combine(middlewares: middlewares)
 }
 
-func combine<State, Action>(middlewares: [Middleware<State, Action>]) -> Middleware<State, Action> {
+public func combine<State, Action>(middlewares: [Middleware<State, Action>]) -> Middleware<State, Action> {
     .init { store in
         { next in
             middlewares.reversed().reduce({ action in
