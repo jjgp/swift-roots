@@ -1,8 +1,8 @@
 import Combine
 
 public final class Store<State, Action>: Publisher, StateContainer {
-    private var isSending: Bool = false
     private var innerSend: Dispatch<Action>!
+    private var isSending = false
     private var sendBuffer: [Action] = []
     private let stateBinding: StateBinding<State>
 
@@ -62,16 +62,17 @@ public extension Store {
     }
 
     func send(_ action: Action) {
-        guard isSending == false else {
+        guard !isSending else {
             sendBuffer.append(action)
             return
         }
 
         isSending = true
         innerSend(action)
-        let currentBuffer = sendBuffer
-        sendBuffer = []
-        currentBuffer.forEach(innerSend)
+        while !sendBuffer.isEmpty {
+            sendBuffer.swapAt(0, sendBuffer.count - 1)
+            innerSend(sendBuffer.removeLast())
+        }
         isSending = false
     }
 
