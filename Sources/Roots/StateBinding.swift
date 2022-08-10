@@ -22,12 +22,10 @@ public struct StateBinding<State>: Publisher {
         self.setState = setState
         self.statePublisher = statePublisher
     }
-
-    public typealias IsDuplicate<State> = (State, State) -> Bool
 }
 
 public extension StateBinding {
-    init(initialState: State, predicate: @escaping IsDuplicate<State> = { _, _ in false }) {
+    init(initialState: State, isDuplicate predicate: @escaping (State, State) -> Bool = { _, _ in false }) {
         let subject = CurrentValueSubject<State, Never>(initialState)
         self.init(
             getState: {
@@ -41,7 +39,7 @@ public extension StateBinding {
     }
 
     init(initialState: State) where State: Equatable {
-        self.init(initialState: initialState, predicate: ==)
+        self.init(initialState: initialState, isDuplicate: ==)
     }
 }
 
@@ -57,7 +55,7 @@ public extension StateBinding {
 public extension StateBinding {
     func scope<StateInScope>(
         _ keyPath: WritableKeyPath<State, StateInScope>,
-        predicate: @escaping IsDuplicate<StateInScope> = { _, _ in false }
+        isDuplicate predicate: @escaping (StateInScope, StateInScope) -> Bool = { _, _ in false }
     ) -> StateBinding<StateInScope> {
         StateBinding<StateInScope>(
             getState: {
@@ -70,7 +68,7 @@ public extension StateBinding {
         )
     }
 
-    func scope<StateInScope>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> where StateInScope: Equatable {
-        scope(keyPath, predicate: ==)
+    func scope<StateInScope: Equatable>(_ keyPath: WritableKeyPath<State, StateInScope>) -> StateBinding<StateInScope> {
+        scope(keyPath, isDuplicate: ==)
     }
 }

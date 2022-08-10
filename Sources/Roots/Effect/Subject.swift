@@ -15,12 +15,12 @@ public extension Effect {
             let cancellable = transitionPublisher.sink { transition in
                 effect(transition.state, transition.action, subject.send)
             }
-            return [Artifact](cancellables: cancellable, publishers: subject)
+            return [Cause](cancellables: cancellable, publishers: subject)
         }
     }
 
-    typealias AsyncSubjectEffect = (State, Action, @escaping Send) async -> Void
-    typealias SubjectEffect = (State, Action, @escaping Send) -> Void
+    typealias AsyncSubjectEffect = (State, Action, @escaping Dispatch<Action>) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Dispatch<Action>) -> Void
 }
 
 public extension ContextEffect {
@@ -40,6 +40,6 @@ public extension ContextEffect {
         }
     }
 
-    typealias AsyncSubjectEffect = (State, Action, @escaping Send, Context) async -> Void
-    typealias SubjectEffect = (State, Action, @escaping Send, Context) -> Void
+    typealias AsyncSubjectEffect = (State, Action, @escaping Dispatch<Action>, Context) async -> Void
+    typealias SubjectEffect = (State, Action, @escaping Dispatch<Action>, Context) -> Void
 }

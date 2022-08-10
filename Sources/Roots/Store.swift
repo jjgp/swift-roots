@@ -1,52 +1,49 @@
 import Combine
 
-public final class Store<State, Action>: Publisher {
-    private let actionSubject = PassthroughSubject<Action, Never>()
-    private var cancellables: Set<AnyCancellable> = []
+public final class Store<State, Action>: Publisher, StateContainer {
+    private var innerSend: Dispatch<Action>!
+    private var isSending = false
+    private var sendBuffer: [Action] = []
     private let stateBinding: StateBinding<State>
 
     public init(stateBinding: StateBinding<State>,
                 reducer: @escaping Reducer<State, Action>,
-                effect: Effect<State, Action>? = nil)
+                middleware: Middleware<State, Action>? = nil)
     {
         self.stateBinding = stateBinding
 
-        let transitionPublisher: PassthroughSubject<Transition<State, Action>, Never>!
-        if let effect = effect {
-            transitionPublisher = .init()
-            let multicastPublisher = transitionPublisher.multicast { PassthroughSubject() }
-            effect.apply(multicastPublisher.eraseToAnyPublisher(), actionSubject.send(_:), &cancellables)
-            multicastPublisher.connect().store(in: &cancellables)
-        } else {
-            transitionPublisher = nil
+        let innerSend: Dispatch<Action> = { action in
+            var state = stateBinding.wrappedState
+            stateBinding.wrappedState = reducer(&state, action)
         }
 
-        actionSubject
-            .sink { action in
-                var nextState = stateBinding.wrappedState
-                nextState = reducer(&nextState, action)
-                stateBinding.wrappedState = nextState
-                transitionPublisher?.send(.init(state: nextState, action: action))
-            }
-            .store(in: &cancellables)
+        if let middleware = middleware {
+            self.innerSend = middleware.createDispatch(toAnyStateContainer())(innerSend)
+        } else {
+            self.innerSend = innerSend
+        }
     }
 }
+
+// MARK: - Convenience initializers
 
 public extension Store {
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     effect: Effect<State, Action>? = nil)
+                     middleware: Middleware<State, Action>? = nil)
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
     }
 
     convenience init(initialState: State,
                      reducer: @escaping Reducer<State, Action>,
-                     effect: Effect<State, Action>? = nil) where State: Equatable
+                     middleware: Middleware<State, Action>? = nil) where State: Equatable
     {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, effect: effect)
+        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
     }
 }
+
+// MARK: - Publisher conformance
 
 public extension Store {
     func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
@@ -57,61 +54,75 @@ public extension Store {
     typealias Output = State
 }
 
-public extension Store {
-    func scope<StateInScope, ActionInScope>(
-        to keyPath: WritableKeyPath<State, StateInScope>,
-        reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        effect: Effect<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
-    }
-
-    func scope<StateInScope, ActionInScope>(
-        to keyPath: WritableKeyPath<State, StateInScope>,
-        reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        effect: Effect<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> where StateInScope: Equatable {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, effect: effect)
-    }
-}
+// MARK: - StateContainer conformance
 
 public extension Store {
+    var state: State {
+        stateBinding.wrappedState
+    }
+
     func send(_ action: Action) {
-        actionSubject.send(action)
+        guard !isSending else {
+            sendBuffer.append(action)
+            return
+        }
+
+        isSending = true
+        innerSend(action)
+        while !sendBuffer.isEmpty {
+            sendBuffer.swapAt(0, sendBuffer.count - 1)
+            innerSend(sendBuffer.removeLast())
+        }
+        isSending = false
+    }
+
+    func toAnyStateContainer() -> AnyStateContainer<State, Action> {
+        var previousState = state
+        return AnyStateContainer(
+            getState: { [weak self] in
+                guard let self = self else {
+                    return previousState
+                }
+
+                return self.state
+            },
+            send: { [weak self] action in
+                guard let self = self else {
+                    return
+                }
+
+                self.send(action)
+                previousState = self.state
+            }
+        )
     }
 }
 
+// MARK: - Store in scope
+
 public extension Store {
-    private func actionCreator<T>(for keyPath: KeyPath<State, T>) -> T {
-        stateBinding.wrappedState[keyPath: keyPath]
+    func scope<StateInScope, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> {
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
     }
 
-    // swiftlint:disable function_parameter_count identifier_name
-    func send(_ keyPath: KeyPath<State, Action>) {
-        send(actionCreator(for: keyPath))
+    func scope<StateInScope, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
+        isDuplicate predicate: @escaping (StateInScope, StateInScope) -> Bool,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> {
+        .init(stateBinding: stateBinding.scope(keyPath, isDuplicate: predicate), reducer: reducer, middleware: middleware)
     }
 
-    func send<A>(_ keyPath: KeyPath<State, (A) -> Action>, _ a: A) {
-        send(actionCreator(for: keyPath)(a))
+    func scope<StateInScope: Equatable, ActionInScope>(
+        to keyPath: WritableKeyPath<State, StateInScope>,
+        reducer: @escaping Reducer<StateInScope, ActionInScope>,
+        middleware: Middleware<StateInScope, ActionInScope>? = nil
+    ) -> Store<StateInScope, ActionInScope> {
+        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
     }
-
-    func send<A, B>(_ keyPath: KeyPath<State, (A, B) -> Action>, _ a: A, _ b: B) {
-        send(actionCreator(for: keyPath)(a, b))
-    }
-
-    func send<A, B, C>(_ keyPath: KeyPath<State, (A, B, C) -> Action>, _ a: A, _ b: B, _ c: C) {
-        send(actionCreator(for: keyPath)(a, b, c))
-    }
-
-    func send<A, B, C, D>(_ keyPath: KeyPath<State, (A, B, C, D) -> Action>, _ a: A, _ b: B, _ c: C, _ d: D) {
-        send(actionCreator(for: keyPath)(a, b, c, d))
-    }
-
-    func send<A, B, C, D, E>(
-        _ keyPath: KeyPath<State, (A, B, C, D, E) -> Action>,
-        _ a: A, _ b: B, _ c: C, _ d: D, _ e: E
-    ) {
-        send(actionCreator(for: keyPath)(a, b, c, d, e))
-    }
-    // swiftlint:enable function_parameter_count identifier_name
 }

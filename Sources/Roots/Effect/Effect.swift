@@ -1,22 +1,22 @@
 import Combine
 
 public struct Effect<State, Action> {
-    public let createArtifacts: CreateArtifacts
+    public let createCauses: CreateCauses
 
-    public init(createArtifacts: @escaping CreateArtifacts) {
-        self.createArtifacts = createArtifacts
+    public init(createCauses: @escaping CreateCauses) {
+        self.createCauses = createCauses
     }
 
-    public enum Artifact {
+    public enum Cause {
         case cancellable(AnyCancellable)
         case publisher(AnyPublisher<Action, Never>)
     }
 
-    public typealias CreateArtifacts = (TransitionPublisher) -> [Artifact]
+    public typealias CreateCauses = (TransitionPublisher) -> [Cause]
     public typealias TransitionPublisher = AnyPublisher<Transition<State, Action>, Never>
 }
 
-public extension Effect.Artifact {
+public extension Effect.Cause {
     init(_ cancellable: AnyCancellable) {
         self = .cancellable(cancellable)
     }
@@ -26,51 +26,39 @@ public extension Effect.Artifact {
     }
 }
 
-public extension AnyCancellable {
-    func toEffectArtifact<State, Action>() -> Effect<State, Action>.Artifact {
-        .init(self)
-    }
-}
-
-public extension Publisher {
-    func toEffectArtifact<State, Action>() -> Effect<State, Action>.Artifact where Self.Output == Action, Self.Failure == Never {
-        .init(self)
-    }
-}
-
 public extension Array {
     init<State, Action>(
         _ cancellables: AnyCancellable...
-    ) where Self.Element == Effect<State, Action>.Artifact {
+    ) where Self.Element == Effect<State, Action>.Cause {
         self.init()
-        append(contentsOf: cancellables.map { $0.toEffectArtifact() })
+        append(contentsOf: cancellables.map { .init($0) })
     }
 
     init<P: Publisher, State, Action>(
         cancellables: AnyCancellable...,
         publishers: P...
-    ) where Self.Element == Effect<State, Action>.Artifact, P.Output == Action, P.Failure == Never {
+    ) where Self.Element == Effect<State, Action>.Cause, P.Output == Action, P.Failure == Never {
         self.init()
-        append(contentsOf: cancellables.map { $0.toEffectArtifact() })
-        append(contentsOf: publishers.map { $0.toEffectArtifact() })
+        append(contentsOf: cancellables.map { .init($0) })
+        append(contentsOf: publishers.map { .init($0) })
     }
 
     init<P: Publisher, State, Action>(
         _ publishers: P...
-    ) where Self.Element == Effect<State, Action>.Artifact, P.Output == Action, P.Failure == Never {
+    ) where Self.Element == Effect<State, Action>.Cause, P.Output == Action, P.Failure == Never {
         self.init()
-        append(contentsOf: publishers.map { $0.toEffectArtifact() })
+        append(contentsOf: publishers.map { .init($0) })
     }
 }
 
 public extension Effect {
     func apply(
         _ transitionPublisher: TransitionPublisher,
-        _ send: @escaping Send,
+        _ send: @escaping Dispatch<Action>,
         _ collection: inout Set<AnyCancellable>
     ) {
         var publishers = [AnyPublisher<Action, Never>]()
-        for artifact in createArtifacts(transitionPublisher) {
+        for artifact in createCauses(transitionPublisher) {
             switch artifact {
             case let .cancellable(cancellable):
                 cancellable.store(in: &collection)
@@ -80,6 +68,4 @@ public extension Effect {
         }
         Publishers.MergeMany(publishers).sink(receiveValue: send).store(in: &collection)
     }
-
-    typealias Send = (Action) -> Void
 }

@@ -1,6 +1,6 @@
 import Roots
 
-// MARK: Count
+// MARK: - Count
 
 struct Count: Equatable {
     var count = 0
@@ -26,37 +26,37 @@ extension Count {
     }
 }
 
-// MARK: PingPong
+// MARK: - Counts
 
-struct PingPong: Equatable {
-    var ping: Count = .init()
-    var pong: Count = .init()
+struct Counts: Equatable {
+    var first: Count = .init()
+    var second: Count = .init()
 }
 
-extension PingPong {
+extension Counts {
     struct Initialize: Action {}
 
     struct Addition: Action {
-        let keyPath: WritableKeyPath<PingPong, Count>
+        let keyPath: WritableKeyPath<Counts, Count>
         let value: Int
     }
 }
 
-extension PingPong {
+extension Counts {
     var initialize: Action {
         Initialize()
     }
 
-    var addTo: (WritableKeyPath<PingPong, Count>, Int) -> Action {
+    var addToCount: (WritableKeyPath<Counts, Count>, Int) -> Action {
         Addition.init(keyPath:value:)
     }
 }
 
-extension PingPong {
-    static func reducer(state: inout PingPong, action: Action) -> PingPong {
+extension Counts {
+    static func reducer(state: inout Counts, action: Action) -> Counts {
         switch action {
         case _ as Initialize:
-            return PingPong()
+            return Counts()
         case let action as Addition:
             state[keyPath: action.keyPath].count += action.value
         default:

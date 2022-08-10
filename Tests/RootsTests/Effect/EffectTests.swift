@@ -13,99 +13,95 @@ class EffectTests: XCTestCase {
         // Then the a decrement action should be sent
         XCTAssertEqual(spy.values, [.decrement(10)])
     }
-}
 
-class EffectsOfStoreInScopeTests: XCTestCase {
     func testEffectsOfStoresInScope() {
-        // Given a store that is scoped to two individual stores having the same increment/decrement effect
-        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
-
-        let pingSUT = pingPongSUT.scope(
-            to: \.ping,
+        // Given a store that is scoped to the individual Count stores having the same increment/decrement effect
+        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let firstCountStore = countsStore.scope(
+            to: \.first,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
-        let pongSUT = pingPongSUT.scope(
-            to: \.pong,
+        let secondCountStore = countsStore.scope(
+            to: \.second,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
 
-        let pingPongSpy = PublisherSpy(pingPongSUT)
-        let pingSpy = PublisherSpy(pingSUT)
-        let pongSpy = PublisherSpy(pongSUT)
+        let countsSpy = PublisherSpy(countsStore)
+        let firstCountSpy = PublisherSpy(firstCountStore)
+        let secondCountSpy = PublisherSpy(secondCountStore)
 
         // When each scoped store increments the values with a set sequence...
-        pingSUT.send(.increment(10))
-        pongSUT.send(.increment(10))
-        pingSUT.send(.increment(20))
-        pongSUT.send(.increment(20))
-        pingSUT.send(.increment(40))
-        pongSUT.send(.increment(40))
-        // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(\.initialize)
+        firstCountStore.send(.increment(10))
+        secondCountStore.send(.increment(10))
+        firstCountStore.send(.increment(20))
+        secondCountStore.send(.increment(20))
+        firstCountStore.send(.increment(40))
+        secondCountStore.send(.increment(40))
+        // ...and the parent store sends an action to reset the state
+        countsStore.send(creator: \.initialize)
 
         // Then each store should emit values that are consistent with one another
-        let pingPongValues = pingPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
-        let pingValues = pingSpy.values.map(\.count)
-        let pongValues = pongSpy.values.map(\.count)
-        // Note that the ping/pong values are interleaved
+        let countsValues = countsSpy.values.map { [$0.first.count, $0.second.count] }
+        let firstCountValues = firstCountSpy.values.map(\.count)
+        let secondCountValues = secondCountSpy.values.map(\.count)
+        // Note that the first/second values are interleaved
         XCTAssertEqual(
-            pingPongValues,
+            countsValues,
             [
-                "0, 0",
-                "10, 0",
-                "-10, 0",
-                "-10, 10",
-                "-10, -10",
-                "10, -10",
-                "-30, -10",
-                "-30, 10",
-                "-30, -30",
-                "10, -30",
-                "-70, -30",
-                "-70, 10",
-                "-70, -70",
-                "0, 0",
+                [0, 0],
+                [10, 0],
+                [-10, 0],
+                [-10, 10],
+                [-10, -10],
+                [10, -10],
+                [-30, -10],
+                [-30, 10],
+                [-30, -30],
+                [10, -30],
+                [-70, -30],
+                [-70, 10],
+                [-70, -70],
+                [0, 0],
             ]
         )
-        XCTAssertEqual(pingValues, [0, 10, -10, 10, -30, 10, -70, 0])
-        XCTAssertEqual(pongValues, [0, 10, -10, 10, -30, 10, -70, 0])
+        XCTAssertEqual(firstCountValues, [0, 10, -10, 10, -30, 10, -70, 0])
+        XCTAssertEqual(secondCountValues, [0, 10, -10, 10, -30, 10, -70, 0])
     }
 
     func testEffectsOfTwinStoresInScope() {
-        // Given a store that is scoped to two twin stores having the same increment/decrement effect
-        let pingPongSUT = Store(initialState: PingPong(), reducer: PingPong.reducer(state:action:))
-
-        let pingSUT = pingPongSUT.scope(
-            to: \.ping,
+        // Given a store that is scoped to two twin state having the same increment/decrement effect
+        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let firstCountStore = countsStore.scope(
+            to: \.first,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
-        let twinPingSUT = pingPongSUT.scope(
-            to: \.ping,
+        let otherFirstCountStore = countsStore.scope(
+            to: \.first,
             reducer: Count.reducer(state:action:),
-            effect: .decrementByDoubleIncrementedValue()
+            middleware: apply(effects: .decrementByDoubleIncrementedValue())
         )
 
-        let pintPongSpy = PublisherSpy(pingPongSUT)
-        let pingSpy = PublisherSpy(pingSUT)
-        let twinPingSpy = PublisherSpy(twinPingSUT)
+        let countsSpy = PublisherSpy(countsStore)
+        let firstCountSpy = PublisherSpy(firstCountStore)
+        let otherFirstCountSpy = PublisherSpy(otherFirstCountStore)
 
         // When each scoped store increments the values with a set sequence...
-        pingSUT.send(.increment(10))
-        twinPingSUT.send(.increment(10))
-        pingSUT.send(.increment(20))
-        twinPingSUT.send(.increment(20))
+        firstCountStore.send(.increment(10))
+        otherFirstCountStore.send(.increment(10))
+        firstCountStore.send(.increment(20))
+        otherFirstCountStore.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        pingPongSUT.send(\.initialize)
+        countsStore.send(creator: \.initialize)
 
         // Then the stores should all have a consistent view of the ping count
-        let pingPongValues = pintPongSpy.values.map { "\($0.ping.count), \($0.pong.count)" }
-        let pingValues = pingSpy.values.map(\.count)
-        let twinPingValues = twinPingSpy.values.map(\.count)
+        let countsValues = countsSpy.values.map { "\($0.first.count), \($0.second.count)" }
+        let firstCountValues = firstCountSpy.values.map(\.count)
+        let otherFirstCountValues = otherFirstCountSpy.values.map(\.count)
         XCTAssertEqual(
-            pingPongValues,
+            countsValues,
             [
                 "0, 0",
                 "10, 0",
@@ -119,8 +115,8 @@ class EffectsOfStoreInScopeTests: XCTestCase {
                 "0, 0",
             ]
         )
-        XCTAssertEqual(pingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
-        XCTAssertEqual(twinPingValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
+        XCTAssertEqual(firstCountValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
+        XCTAssertEqual(otherFirstCountValues, [0, 10, -10, 0, -20, 0, -40, -20, -60, 0])
     }
 }
 
@@ -135,7 +131,7 @@ private extension Effect where State == Count, Action == Count.Action {
                 }
             }
 
-            return [Artifact](publisher)
+            return [Cause](publisher)
         }
     }
 
