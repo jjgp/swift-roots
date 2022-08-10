@@ -1,8 +1,22 @@
-//
-//  File.swift
-//
-//
-//  Created by Jason Prasad on 8/9/22.
-//
+public func runThunk<State, Action>() -> Middleware<State, Action> {
+    .runThunk()
+}
 
-import Foundation
+public extension Middleware {
+    static func runThunk() -> Self {
+        .init { store in
+            { next in
+                { action in
+                    guard let action = action as? Thunk<State, Action> else {
+                        next(action)
+                        return
+                    }
+
+                    action.run(store.send(_:)) {
+                        store.state
+                    }
+                }
+            }
+        }
+    }
+}

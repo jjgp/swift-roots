@@ -1,4 +1,4 @@
-public struct Thunk<State> {
+public struct Thunk<State, Action>: Roots.Action {
     let run: Run
 
     public init(run: @escaping Run) {
