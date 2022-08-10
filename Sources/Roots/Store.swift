@@ -1,7 +1,9 @@
 import Combine
 
 public final class Store<State, Action>: Publisher, StateContainer {
+    private var isSending: Bool = false
     private var innerSend: Dispatch<Action>!
+    private var sendBuffer: [Action] = []
     private let stateBinding: StateBinding<State>
 
     public init(stateBinding: StateBinding<State>,
@@ -60,7 +62,17 @@ public extension Store {
     }
 
     func send(_ action: Action) {
+        guard isSending == false else {
+            sendBuffer.append(action)
+            return
+        }
+
+        isSending = true
         innerSend(action)
+        let currentBuffer = sendBuffer
+        sendBuffer = []
+        currentBuffer.forEach(innerSend)
+        isSending = false
     }
 
     func toAnyStateContainer() -> AnyStateContainer<State, Action> {

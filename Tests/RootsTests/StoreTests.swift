@@ -281,32 +281,32 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(secondCountValues, [0, -20, 20, 0])
     }
 
-    func testSendingFromASubscription() {
-        // TODO: this case raises the point that there should likely be a buffer to store actions
-        // while the store is processing an action.
+    func testSendingFromASubscriptionBuffersRecursiveActions() {
+        /*
+         This test ensures that recursive actions are buffered until the store is done sending. Without the buffer,
+         the test fails intermittently due to the rescheduling on the main queue from recursively publishing state
+         updates.
+         */
 
-        // Given a all Count(s) stores
+        // Given a count store that recursively decrements in a subscriber
         let countStore = Store(initialState: Count(), reducer: Count.reducer(state:action:))
         let countSpy = PublisherSpy(countStore)
 
-        let expectation = expectation(description: "decrement happens for each increment")
-        expectation.expectedFulfillmentCount = 2
         let sub = countStore.sink { [weak countStore] state in
-            print("in sink: ", state, countSpy.values)
             if state.count == 10 {
                 countStore?.send(.decrement(10))
-            } else if countSpy.values.count == 5 {
-                expectation.fulfill()
             }
         }
-        defer { sub.cancel() }
 
-        // When sending actions to all stores
+        defer {
+            sub.cancel()
+        }
+
+        // When sending actions to increment
         countStore.send(.increment(10))
         countStore.send(.increment(10))
 
-        wait(for: [expectation], timeout: 1)
-
+        // Then the decrements should be interleaved correctly despite the recursive send
         let countValues = countSpy.values.map(\.count)
         XCTAssertEqual(countValues, [0, 10, 0, 10, 0])
     }
