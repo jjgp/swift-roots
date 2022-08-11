@@ -2,14 +2,16 @@ import Combine
 
 public final class Store<State, Action>: Publisher, StateContainer {
     private var innerSend: Dispatch<Action>!
-    private var isSending = false
-    private var sendBuffer: [Action] = []
+    private var sendScheduler: SendScheduler
     private let stateBinding: StateBinding<State>
 
-    public init(stateBinding: StateBinding<State>,
-                reducer: @escaping Reducer<State, Action>,
-                middleware: Middleware<State, Action>? = nil)
-    {
+    public init(
+        sendScheduler: SendScheduler = OneAtATimeSendScheduler(),
+        stateBinding: StateBinding<State>,
+        reducer: @escaping Reducer<State, Action>,
+        middleware: Middleware<State, Action>? = nil
+    ) {
+        self.sendScheduler = sendScheduler
         self.stateBinding = stateBinding
 
         let innerSend: Dispatch<Action> = { action in
@@ -28,18 +30,32 @@ public final class Store<State, Action>: Publisher, StateContainer {
 // MARK: - Convenience initializers
 
 public extension Store {
-    convenience init(initialState: State,
-                     reducer: @escaping Reducer<State, Action>,
-                     middleware: Middleware<State, Action>? = nil)
-    {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
+    convenience init(
+        sendScheduler: SendScheduler = OneAtATimeSendScheduler(),
+        initialState: State,
+        reducer: @escaping Reducer<State, Action>,
+        middleware: Middleware<State, Action>? = nil
+    ) {
+        self.init(
+            sendScheduler: sendScheduler,
+            stateBinding: .init(initialState: initialState),
+            reducer: reducer,
+            middleware: middleware
+        )
     }
 
-    convenience init(initialState: State,
-                     reducer: @escaping Reducer<State, Action>,
-                     middleware: Middleware<State, Action>? = nil) where State: Equatable
-    {
-        self.init(stateBinding: .init(initialState: initialState), reducer: reducer, middleware: middleware)
+    convenience init(
+        sendScheduler: SendScheduler = OneAtATimeSendScheduler(),
+        initialState: State,
+        reducer: @escaping Reducer<State, Action>,
+        middleware: Middleware<State, Action>? = nil
+    ) where State: Equatable {
+        self.init(
+            sendScheduler: sendScheduler,
+            stateBinding: .init(initialState: initialState),
+            reducer: reducer,
+            middleware: middleware
+        )
     }
 }
 
@@ -62,18 +78,7 @@ public extension Store {
     }
 
     func send(_ action: Action) {
-        guard !isSending else {
-            sendBuffer.append(action)
-            return
-        }
-
-        isSending = true
-        innerSend(action)
-        while !sendBuffer.isEmpty {
-            sendBuffer.swapAt(0, sendBuffer.count - 1)
-            innerSend(sendBuffer.removeLast())
-        }
-        isSending = false
+        sendScheduler.schedule(action: action, sendingTo: innerSend)
     }
 
     func toAnyStateContainer() -> AnyStateContainer<State, Action> {
@@ -106,7 +111,12 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
+        .init(
+            sendScheduler: sendScheduler,
+            stateBinding: stateBinding.scope(keyPath),
+            reducer: reducer,
+            middleware: middleware
+        )
     }
 
     func scope<StateInScope, ActionInScope>(
@@ -115,7 +125,12 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath, isDuplicate: predicate), reducer: reducer, middleware: middleware)
+        .init(
+            sendScheduler: sendScheduler,
+            stateBinding: stateBinding.scope(keyPath, isDuplicate: predicate),
+            reducer: reducer,
+            middleware: middleware
+        )
     }
 
     func scope<StateInScope: Equatable, ActionInScope>(
@@ -123,6 +138,11 @@ public extension Store {
         reducer: @escaping Reducer<StateInScope, ActionInScope>,
         middleware: Middleware<StateInScope, ActionInScope>? = nil
     ) -> Store<StateInScope, ActionInScope> {
-        .init(stateBinding: stateBinding.scope(keyPath), reducer: reducer, middleware: middleware)
+        .init(
+            sendScheduler: sendScheduler,
+            stateBinding: stateBinding.scope(keyPath),
+            reducer: reducer,
+            middleware: middleware
+        )
     }
 }

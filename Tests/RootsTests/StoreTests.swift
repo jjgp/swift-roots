@@ -196,7 +196,10 @@ class StoreTests: XCTestCase {
 
     func testAllToDoListStoresInScopeWithIsDuplicatePredicate() {
         // Given all scoped ToDo stores with a duplicate predicate
-        let todoListStore = Store(stateBinding: .init(initialState: ToDoList(), isDuplicate: ==), reducer: toDoListReducer(state:action:))
+        let todoListStore = Store(
+            stateBinding: .init(initialState: ToDoList(), isDuplicate: ==),
+            reducer: toDoListReducer(state:action:)
+        )
         let filtersStore = todoListStore.scope(to: \.filters, isDuplicate: ==, reducer: filtersReducer(state:action:))
         let todoStore = todoListStore.scope(to: \.todos, isDuplicate: ==, reducer: toDoReducer(state:action:))
 
@@ -322,10 +325,12 @@ class StoreTests: XCTestCase {
             .sink { [weak countsStore] state in
                 print("in countStore:", state)
                 if state.first.count == 10 {
+                    print("in countStore: sending decrement to first")
                     countsStore?.send(creator: \.addToCount, passing: \.first, -10)
                 }
 
                 if state.second.count == 10 {
+                    print("in countStore: sending decrement to second")
                     countsStore?.send(creator: \.addToCount, passing: \.second, -10)
                 }
             }
@@ -335,6 +340,7 @@ class StoreTests: XCTestCase {
             .sink { [weak firstCountStore] state in
                 print("in firstCountStore:", state)
                 if state.count == 10 {
+                    print("in firstCountStore: sending decrement to first")
                     firstCountStore?.send(.decrement(10))
                 }
             }
@@ -344,6 +350,7 @@ class StoreTests: XCTestCase {
             .sink { [weak secondCountStore] state in
                 print("in secondCountStore:", state)
                 if state.count == 10 {
+                    print("in secondCountStore: sending decrement to second")
                     secondCountStore?.send(.decrement(10))
                 }
             }
