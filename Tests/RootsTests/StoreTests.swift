@@ -1,3 +1,4 @@
+import Combine
 import Roots
 import RootsTest
 import XCTest
@@ -306,5 +307,49 @@ class StoreTests: XCTestCase {
         let countValues = countSpy.values.map(\.count)
         XCTAssertEqual(countValues, [0, 10, 0, 10, 0])
         sub.cancel()
+    }
+
+    func testRecursiveActionsFromStoresInScope() {
+        // TODO: perhaps the isSending should be a binding that is viewable by all stores in scope...
+
+        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let firstCountStore = countsStore.scope(to: \.first, reducer: Count.reducer(state:action:))
+        let secondCountStore = countsStore.scope(to: \.second, reducer: Count.reducer(state:action:))
+
+        var cancellables = Set<AnyCancellable>()
+
+        countsStore
+            .sink { [weak countsStore] state in
+                print("in countStore:", state)
+                if state.first.count == 10 {
+                    countsStore?.send(creator: \.addToCount, passing: \.first, -10)
+                }
+
+                if state.second.count == 10 {
+                    countsStore?.send(creator: \.addToCount, passing: \.second, -10)
+                }
+            }
+            .store(in: &cancellables)
+
+        firstCountStore
+            .sink { [weak firstCountStore] state in
+                print("in firstCountStore:", state)
+                if state.count == 10 {
+                    firstCountStore?.send(.decrement(10))
+                }
+            }
+            .store(in: &cancellables)
+
+        secondCountStore
+            .sink { [weak secondCountStore] state in
+                print("in secondCountStore:", state)
+                if state.count == 10 {
+                    secondCountStore?.send(.decrement(10))
+                }
+            }
+            .store(in: &cancellables)
+
+        firstCountStore.send(.increment(10))
+        secondCountStore.send(.increment(10))
     }
 }
