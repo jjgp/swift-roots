@@ -352,6 +352,8 @@ class StoreTests: XCTestCase {
             }
             .store(in: &cancellables)
 
+        // TODO: make the assertions of sendSchedulerSpy more ergonomic
+
         firstCountStore.send(.increment(10))
         XCTAssertEqual(sendSchedulerSpy.sendNext(), Count.Action.increment(10))
         XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
