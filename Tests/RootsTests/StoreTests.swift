@@ -287,9 +287,9 @@ class StoreTests: XCTestCase {
 
     func testSendingFromASubscriptionBuffersRecursiveActions() {
         /*
-         This test ensures that recursive actions are buffered until the store is done sending. Without the buffer,
-         the test fails intermittently due to the rescheduling on the main queue from recursively publishing state
-         updates.
+         This test ensures that recursive actions are buffered by the scheduler until an action is done processing.
+         Without the scheduler, the test fails intermittently due to the rescheduling on the main queue from recursively
+         publishing state updates.
          */
 
         // Given a count store that recursively decrements in a subscriber
@@ -313,6 +313,12 @@ class StoreTests: XCTestCase {
     }
 
     func testRecursiveActionsFromStoresInScope() {
+        /*
+         The test is similar to testSendingFromASubscriptionBuffersRecursiveActions() in that it asserts the
+         relative ordering of recursively sent actions being processed by all the stores in scope.
+         */
+
+        // Given all stores in scope that have subscribers that send recursive actions
         let sendSchedulerSpy = SendSchedulerSpy()
         let countsStore = Store(
             sendScheduler: sendSchedulerSpy,
@@ -352,38 +358,30 @@ class StoreTests: XCTestCase {
             }
             .store(in: &cancellables)
 
-        // TODO: make the assertions of sendSchedulerSpy more ergonomic
-
+        // When actions are sent that trigger recursive actions
+        // Then the actions should be interleaved with the subscriber updates
         firstCountStore.send(.increment(10))
-        XCTAssertEqual(sendSchedulerSpy.sendNext(), Count.Action.increment(10))
+
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(at: 0), Count.Action.increment(10))
         XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
-        for _ in 0 ..< sendSchedulerSpy.sendPendingBuffer.count {
-            let sent: Any? = sendSchedulerSpy.sendNext()
-            if let sent = sent as? Count.Action {
-                XCTAssertEqual(sent, .decrement(10))
-            } else if let sent = sent as? Counts.Addition {
-                XCTAssertEqual(sent.keyPath, \.first)
-                XCTAssertEqual(sent.value, -10)
-            } else {
-                XCTFail("unexpected action sent")
-            }
-        }
-        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 0)
+        sendSchedulerSpy.sendNext()
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(between: 1 ... 2), Count.Action.decrement(10))
+        let countsFirstAddition: Counts.Addition? = sendSchedulerSpy.sendHistory(between: 1 ... 2)
+        XCTAssertEqual(countsFirstAddition?.keyPath, \.first)
+        XCTAssertEqual(countsFirstAddition?.value, -10)
 
         secondCountStore.send(.increment(10))
-        XCTAssertEqual(sendSchedulerSpy.sendNext(), Count.Action.increment(10))
+
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(at: 3), Count.Action.increment(10))
         XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
-        for _ in 0 ..< sendSchedulerSpy.sendPendingBuffer.count {
-            let sent: Any? = sendSchedulerSpy.sendNext()
-            if let sent = sent as? Count.Action {
-                XCTAssertEqual(sent, .decrement(10))
-            } else if let sent = sent as? Counts.Addition {
-                XCTAssertEqual(sent.keyPath, \.second)
-                XCTAssertEqual(sent.value, -10)
-            } else {
-                XCTFail("unexpected action sent")
-            }
-        }
-        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 0)
+        sendSchedulerSpy.sendNext()
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(between: 1 ... 2), Count.Action.decrement(10))
+        let countsSecondAddition: Counts.Addition? = sendSchedulerSpy.sendHistory(between: 4 ... 5)
+        XCTAssertEqual(countsSecondAddition?.keyPath, \.second)
+        XCTAssertEqual(countsSecondAddition?.value, -10)
     }
 }
