@@ -27,10 +27,8 @@ public extension Middleware {
     }
 
     static func apply(effects: [Effect<State, Action>]) -> Self {
-        .init { store in
-            { next in
-                ApplyEffect(.combine(effects: effects), to: store, chainingTo: next).respond(to:)
-            }
+        .init { store, next in
+            ApplyEffect(.combine(effects: effects), to: store, chainingTo: next).respond(to:)
         }
     }
 
@@ -45,10 +43,8 @@ public extension Middleware {
         context: Context,
         and contextEffects: [ContextEffect<State, Action, Context>]
     ) -> Self {
-        .init { store in
-            { next in
-                ApplyEffect(.combine(context: context, and: contextEffects), to: store, chainingTo: next).respond(to:)
-            }
+        .init { store, next in
+            ApplyEffect(.combine(context: context, and: contextEffects), to: store, chainingTo: next).respond(to:)
         }
     }
 }

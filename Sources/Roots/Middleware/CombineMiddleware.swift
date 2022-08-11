@@ -4,13 +4,9 @@ public extension Middleware {
     }
 
     static func combine(middlewares: [Self]) -> Self {
-        .init { store in
-            { next in
-                middlewares.reversed().reduce({ action in
-                    next(action)
-                }) { dispatch, middleware in
-                    middleware.createDispatch(store)(dispatch)
-                }
+        .init { store, next in
+            middlewares.reversed().reduce(next) { dispatch, middleware in
+                middleware.createDispatch(store, dispatch)
             }
         }
     }
