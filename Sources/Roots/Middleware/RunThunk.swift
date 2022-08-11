@@ -2,13 +2,13 @@ public extension Middleware {
     static func runThunk() -> Self {
         .init { store, next in
             { action in
-                guard let action = action as? Thunk<State, Action> else {
+                switch action {
+                case let action as Thunk<State, Action>:
+                    action.run(store.send(_:)) {
+                        store.state
+                    }
+                default:
                     next(action)
-                    return
-                }
-
-                action.run(store.send(_:)) {
-                    store.state
                 }
             }
         }
