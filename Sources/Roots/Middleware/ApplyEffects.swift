@@ -1,17 +1,5 @@
 import Combine
 
-public func apply<State, Action>(effects: Effect<State, Action>...) -> Middleware<State, Action> {
-    apply(effects: effects)
-}
-
-public func apply<State, Action>(effects: [Effect<State, Action>]) -> Middleware<State, Action> {
-    .init { store in
-        { next in
-            ApplyEffect(combine(effects: effects), to: store, chainingTo: next).respond(to:)
-        }
-    }
-}
-
 struct ApplyEffect<State, Action> {
     private var cancellables = Set<AnyCancellable>()
     private let next: Dispatch<Action>
@@ -31,4 +19,20 @@ struct ApplyEffect<State, Action> {
         next(action)
         transitionPublisher.send(.init(state: store.state, action: action))
     }
+}
+
+public extension Middleware {
+    static func apply(effects: Effect<State, Action>...) -> Self {
+        .apply(effects: effects)
+    }
+
+    static func apply(effects: [Effect<State, Action>]) -> Self {
+        .init { store in
+            { next in
+                ApplyEffect(.combine(effects: effects), to: store, chainingTo: next).respond(to:)
+            }
+        }
+    }
+
+    // TODO: context effects
 }

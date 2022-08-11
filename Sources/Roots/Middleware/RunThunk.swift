@@ -1,7 +1,3 @@
-public func runThunk<State, Action>() -> Middleware<State, Action> {
-    .runThunk()
-}
-
 public extension Middleware {
     static func runThunk() -> Self {
         .init { store in
