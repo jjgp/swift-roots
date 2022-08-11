@@ -313,9 +313,12 @@ class StoreTests: XCTestCase {
     }
 
     func testRecursiveActionsFromStoresInScope() {
-        // TODO: perhaps the isSending should be a binding that is viewable by all stores in scope...
-
-        let countsStore = Store(initialState: Counts(), reducer: Counts.reducer(state:action:))
+        let sendSchedulerSpy = SendSchedulerSpy()
+        let countsStore = Store(
+            sendScheduler: sendSchedulerSpy,
+            initialState: Counts(),
+            reducer: Counts.reducer(state:action:)
+        )
         let firstCountStore = countsStore.scope(to: \.first, reducer: Count.reducer(state:action:))
         let secondCountStore = countsStore.scope(to: \.second, reducer: Count.reducer(state:action:))
 
@@ -323,14 +326,11 @@ class StoreTests: XCTestCase {
 
         countsStore
             .sink { [weak countsStore] state in
-                print("in countStore:", state)
                 if state.first.count == 10 {
-                    print("in countStore: sending decrement to first")
                     countsStore?.send(creator: \.addToCount, passing: \.first, -10)
                 }
 
                 if state.second.count == 10 {
-                    print("in countStore: sending decrement to second")
                     countsStore?.send(creator: \.addToCount, passing: \.second, -10)
                 }
             }
@@ -338,9 +338,7 @@ class StoreTests: XCTestCase {
 
         firstCountStore
             .sink { [weak firstCountStore] state in
-                print("in firstCountStore:", state)
                 if state.count == 10 {
-                    print("in firstCountStore: sending decrement to first")
                     firstCountStore?.send(.decrement(10))
                 }
             }
@@ -348,15 +346,42 @@ class StoreTests: XCTestCase {
 
         secondCountStore
             .sink { [weak secondCountStore] state in
-                print("in secondCountStore:", state)
                 if state.count == 10 {
-                    print("in secondCountStore: sending decrement to second")
                     secondCountStore?.send(.decrement(10))
                 }
             }
             .store(in: &cancellables)
 
         firstCountStore.send(.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendNext(), Count.Action.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
+        for _ in 0 ..< sendSchedulerSpy.sendPendingBuffer.count {
+            let sent: Any? = sendSchedulerSpy.sendNext()
+            if let sent = sent as? Count.Action {
+                XCTAssertEqual(sent, .decrement(10))
+            } else if let sent = sent as? Counts.Addition {
+                XCTAssertEqual(sent.keyPath, \.first)
+                XCTAssertEqual(sent.value, -10)
+            } else {
+                XCTFail("unexpected action sent")
+            }
+        }
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 0)
+
         secondCountStore.send(.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendNext(), Count.Action.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
+        for _ in 0 ..< sendSchedulerSpy.sendPendingBuffer.count {
+            let sent: Any? = sendSchedulerSpy.sendNext()
+            if let sent = sent as? Count.Action {
+                XCTAssertEqual(sent, .decrement(10))
+            } else if let sent = sent as? Counts.Addition {
+                XCTAssertEqual(sent.keyPath, \.second)
+                XCTAssertEqual(sent.value, -10)
+            } else {
+                XCTFail("unexpected action sent")
+            }
+        }
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 0)
     }
 }

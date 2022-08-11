@@ -4,13 +4,13 @@ public protocol SendScheduler {
 
 public final class OneAtATimeSendScheduler: SendScheduler {
     private var isSending = false
-    private var sendBuffer: [SendPending] = []
+    private var sendPendingBuffer: [SendPending] = []
 
     public init() {}
 
     public func schedule<Action>(action: Action, sendingTo send: @escaping Dispatch<Action>) {
         guard !isSending else {
-            sendBuffer.append {
+            sendPendingBuffer.append {
                 send(action)
             }
             return
@@ -18,12 +18,12 @@ public final class OneAtATimeSendScheduler: SendScheduler {
 
         isSending = true
         send(action)
-        while !sendBuffer.isEmpty {
-            sendBuffer.swapAt(0, sendBuffer.count - 1)
-            sendBuffer.removeLast()()
+        while !sendPendingBuffer.isEmpty {
+            sendPendingBuffer.swapAt(0, sendPendingBuffer.count - 1)
+            sendPendingBuffer.removeLast()()
         }
         isSending = false
     }
 
-    typealias SendPending = () -> Void
+    private typealias SendPending = () -> Void
 }
