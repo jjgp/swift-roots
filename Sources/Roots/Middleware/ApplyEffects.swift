@@ -34,5 +34,21 @@ public extension Middleware {
         }
     }
 
-    // TODO: context effects
+    static func apply<Context>(
+        context: Context,
+        and contextEffects: ContextEffect<State, Action, Context>...
+    ) -> Self {
+        .apply(context: context, and: contextEffects)
+    }
+
+    static func apply<Context>(
+        context: Context,
+        and contextEffects: [ContextEffect<State, Action, Context>]
+    ) -> Self {
+        .init { store in
+            { next in
+                ApplyEffect(.combine(context: context, with: contextEffects), to: store, chainingTo: next).respond(to:)
+            }
+        }
+    }
 }
