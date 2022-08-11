@@ -1,3 +1,4 @@
+import Combine
 import Roots
 import RootsTest
 import XCTest
@@ -195,7 +196,10 @@ class StoreTests: XCTestCase {
 
     func testAllToDoListStoresInScopeWithIsDuplicatePredicate() {
         // Given all scoped ToDo stores with a duplicate predicate
-        let todoListStore = Store(stateBinding: .init(initialState: ToDoList(), isDuplicate: ==), reducer: toDoListReducer(state:action:))
+        let todoListStore = Store(
+            stateBinding: .init(initialState: ToDoList(), isDuplicate: ==),
+            reducer: toDoListReducer(state:action:)
+        )
         let filtersStore = todoListStore.scope(to: \.filters, isDuplicate: ==, reducer: filtersReducer(state:action:))
         let todoStore = todoListStore.scope(to: \.todos, isDuplicate: ==, reducer: toDoReducer(state:action:))
 
@@ -283,9 +287,9 @@ class StoreTests: XCTestCase {
 
     func testSendingFromASubscriptionBuffersRecursiveActions() {
         /*
-         This test ensures that recursive actions are buffered until the store is done sending. Without the buffer,
-         the test fails intermittently due to the rescheduling on the main queue from recursively publishing state
-         updates.
+         This test ensures that recursive actions are buffered by the scheduler until an action is done processing.
+         Without the scheduler, the test fails intermittently due to the rescheduling on the main queue from recursively
+         publishing state updates.
          */
 
         // Given a count store that recursively decrements in a subscriber
@@ -306,5 +310,78 @@ class StoreTests: XCTestCase {
         let countValues = countSpy.values.map(\.count)
         XCTAssertEqual(countValues, [0, 10, 0, 10, 0])
         sub.cancel()
+    }
+
+    func testRecursiveActionsFromStoresInScope() {
+        /*
+         The test is similar to testSendingFromASubscriptionBuffersRecursiveActions() in that it asserts the
+         relative ordering of recursively sent actions being processed by all the stores in scope.
+         */
+
+        // Given all stores in scope that have subscribers that send recursive actions
+        let sendSchedulerSpy = SendSchedulerSpy()
+        let countsStore = Store(
+            sendScheduler: sendSchedulerSpy,
+            initialState: Counts(),
+            reducer: Counts.reducer(state:action:)
+        )
+        let firstCountStore = countsStore.scope(to: \.first, reducer: Count.reducer(state:action:))
+        let secondCountStore = countsStore.scope(to: \.second, reducer: Count.reducer(state:action:))
+
+        var cancellables = Set<AnyCancellable>()
+
+        countsStore
+            .sink { [weak countsStore] state in
+                if state.first.count == 10 {
+                    countsStore?.send(creator: \.addToCount, passing: \.first, -10)
+                }
+
+                if state.second.count == 10 {
+                    countsStore?.send(creator: \.addToCount, passing: \.second, -10)
+                }
+            }
+            .store(in: &cancellables)
+
+        firstCountStore
+            .sink { [weak firstCountStore] state in
+                if state.count == 10 {
+                    firstCountStore?.send(.decrement(10))
+                }
+            }
+            .store(in: &cancellables)
+
+        secondCountStore
+            .sink { [weak secondCountStore] state in
+                if state.count == 10 {
+                    secondCountStore?.send(.decrement(10))
+                }
+            }
+            .store(in: &cancellables)
+
+        // When actions are sent that trigger recursive actions
+        // Then the actions should be interleaved with the subscriber updates
+        firstCountStore.send(.increment(10))
+
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(at: 0), Count.Action.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
+        sendSchedulerSpy.sendNext()
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(between: 1 ... 2), Count.Action.decrement(10))
+        let countsFirstAddition: Counts.Addition? = sendSchedulerSpy.sendHistory(between: 1 ... 2)
+        XCTAssertEqual(countsFirstAddition?.keyPath, \.first)
+        XCTAssertEqual(countsFirstAddition?.value, -10)
+
+        secondCountStore.send(.increment(10))
+
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(at: 3), Count.Action.increment(10))
+        XCTAssertEqual(sendSchedulerSpy.sendPendingBuffer.count, 2)
+        sendSchedulerSpy.sendNext()
+        sendSchedulerSpy.sendNext()
+        XCTAssertEqual(sendSchedulerSpy.sendHistory(between: 1 ... 2), Count.Action.decrement(10))
+        let countsSecondAddition: Counts.Addition? = sendSchedulerSpy.sendHistory(between: 4 ... 5)
+        XCTAssertEqual(countsSecondAddition?.keyPath, \.second)
+        XCTAssertEqual(countsSecondAddition?.value, -10)
     }
 }

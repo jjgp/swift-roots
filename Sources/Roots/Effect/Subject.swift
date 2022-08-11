@@ -1,9 +1,9 @@
 import Combine
 
 public extension Effect {
-    static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
+    static func subject(priority: TaskPriority? = nil, _ effect: @escaping AsyncSubjectEffect) -> Self {
         .subject { state, action, send in
-            Task {
+            Task(priority: priority) {
                 await effect(state, action, send)
             }
         }
@@ -24,9 +24,9 @@ public extension Effect {
 }
 
 public extension ContextEffect {
-    static func subject(_ effect: @escaping AsyncSubjectEffect) -> Self {
+    static func subject(priority: TaskPriority? = nil, _ effect: @escaping AsyncSubjectEffect) -> Self {
         .subject { state, action, send, context in
-            Task {
+            Task(priority: priority) {
                 await effect(state, action, send, context)
             }
         }
