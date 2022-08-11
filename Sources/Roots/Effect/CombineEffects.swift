@@ -15,14 +15,14 @@ public extension Effect {
 
     static func combine<Context>(
         context: Context,
-        with contextEffects: ContextEffect<State, Action, Context>...
+        and contextEffects: ContextEffect<State, Action, Context>...
     ) -> Self {
-        combine(context: context, with: contextEffects)
+        combine(context: context, and: contextEffects)
     }
 
     static func combine<Context>(
         context: Context,
-        with contextEffects: [ContextEffect<State, Action, Context>]
+        and contextEffects: [ContextEffect<State, Action, Context>]
     ) -> Self {
         combine(effects: contextEffects.map {
             $0.createEffect(context)

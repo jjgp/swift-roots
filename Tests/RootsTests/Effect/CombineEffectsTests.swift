@@ -27,7 +27,7 @@ class CombineEffectTests: XCTestCase {
     func testCombineContextWithEffects() {
         // Given a context effect that increments the value to a value specified by the context and another that decrements to 0
         let spy = EffectSpy(
-            .combine(context: Context(value: 100), with: .incrementToContextValue(), .decrementContextValueTo0())
+            .combine(context: Context(value: 100), and: .incrementToContextValue(), .decrementContextValueTo0())
         )
 
         // When sending any value...

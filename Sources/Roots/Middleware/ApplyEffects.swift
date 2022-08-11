@@ -47,7 +47,7 @@ public extension Middleware {
     ) -> Self {
         .init { store in
             { next in
-                ApplyEffect(.combine(context: context, with: contextEffects), to: store, chainingTo: next).respond(to:)
+                ApplyEffect(.combine(context: context, and: contextEffects), to: store, chainingTo: next).respond(to:)
             }
         }
     }
