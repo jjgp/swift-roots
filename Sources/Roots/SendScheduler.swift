@@ -3,8 +3,8 @@ public protocol SendScheduler {
 }
 
 public final class OneAtATimeSendScheduler: SendScheduler {
-    private var isSending = false
-    private var sendPendingBuffer: [SendPending] = []
+    var isSending = false
+    var sendPendingBuffer: [SendPending] = []
 
     public init() {}
 
@@ -25,5 +25,5 @@ public final class OneAtATimeSendScheduler: SendScheduler {
         isSending = false
     }
 
-    private typealias SendPending = () -> Void
+    typealias SendPending = () -> Void
 }

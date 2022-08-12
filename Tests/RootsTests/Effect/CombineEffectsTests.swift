@@ -48,17 +48,34 @@ private extension XCTestCase {
 
 private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
-        .subject { state, action, send, context in
-            if state.count < context.value, case let .increment(value) = action {
-                send(.increment(context.value - value))
+        ContextEffect { context in
+            Effect { states, actions in
+                states
+                    .filter { state in
+                        state.count < context.value
+                    }
+                    .zip(actions)
+                    .compactMap { _, action in
+                        if case let .increment(value) = action {
+                            return .increment(context.value - value)
+                        } else {
+                            return nil
+                        }
+                    }
             }
         }
     }
 
     static func decrementContextValueTo0() -> Self {
-        .subject { state, _, send, context in
-            if state.count == context.value {
-                send(.decrement(context.value))
+        ContextEffect { context in
+            Effect { states, _ in
+                states
+                    .filter { state in
+                        state.count == context.value
+                    }
+                    .map { _ in
+                        .decrement(context.value)
+                    }
             }
         }
     }
@@ -66,18 +83,31 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
 
 private extension Effect where State == Count, Action == Count.Action {
     static func incrementTo100() -> Self {
-        .subject { state, action, send in
-            if state.count < 100, case let .increment(value) = action {
-                send(.increment(100 - value))
-            }
+        Effect { states, actions in
+            states
+                .filter { state in
+                    state.count < 100
+                }
+                .zip(actions)
+                .compactMap { _, action in
+                    if case let .increment(value) = action {
+                        return .increment(100 - value)
+                    } else {
+                        return nil
+                    }
+                }
         }
     }
 
     static func decrement100To0() -> Self {
-        .subject { state, _, send in
-            if state.count == 100 {
-                send(.decrement(100))
-            }
+        Effect { states, _ in
+            states
+                .filter { state in
+                    state.count == 100
+                }
+                .map { _ in
+                    .decrement(100)
+                }
         }
     }
 }

@@ -6,10 +6,10 @@ public extension Effect {
     }
 
     static func combine(effects: [Self]) -> Self {
-        .init { transitionPublisher in
-            effects.flatMap { effect in
-                effect.createCauses(transitionPublisher)
-            }
+        .init { states, actions in
+            Publishers.MergeMany(effects.map { effect in
+                effect.createPublisher(states, actions)
+            })
         }
     }
 
