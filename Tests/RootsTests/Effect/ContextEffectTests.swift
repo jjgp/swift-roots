@@ -23,21 +23,19 @@ private extension XCTestCase {
 
 private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
     static func incrementToContextValue() -> Self {
-        ContextEffect { context in
-            Effect { states, actions in
-                states
-                    .filter { state in
-                        state.count < context.value
+        ContextEffect { states, actions, context in
+            states
+                .filter { state in
+                    state.count < context.value
+                }
+                .zip(actions)
+                .compactMap { _, action in
+                    if case let .increment(value) = action {
+                        return .increment(context.value - value)
+                    } else {
+                        return nil
                     }
-                    .zip(actions)
-                    .compactMap { _, action in
-                        if case let .increment(value) = action {
-                            return .increment(context.value - value)
-                        } else {
-                            return nil
-                        }
-                    }
-            }
+                }
         }
     }
 }
