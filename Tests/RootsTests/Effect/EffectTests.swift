@@ -122,23 +122,25 @@ class EffectTests: XCTestCase {
 
 private extension Effect where State == Count, Action == Count.Action {
     static func decrementByIncrementedValue() -> Self {
-        Effect { transitionPublisher in
-            let publisher = transitionPublisher.compactMap { transition -> Count.Action? in
-                if case let .increment(value) = transition.action {
+        Effect { _, actions in
+            actions.compactMap { action in
+                if case let .increment(value) = action {
                     return .decrement(value)
                 } else {
                     return nil
                 }
             }
-
-            return [Cause](publisher)
         }
     }
 
     static func decrementByDoubleIncrementedValue() -> Self {
-        .subject { _, action, send in
-            if case let .increment(value) = action {
-                send(.decrement(2 * value))
+        Effect { _, actions in
+            actions.compactMap { action in
+                if case let .increment(value) = action {
+                    return .decrement(2 * value)
+                } else {
+                    return nil
+                }
             }
         }
     }

@@ -6,16 +6,17 @@ public class EffectSpy<State, Action>: Subscriber {
     private var cancellables = Set<AnyCancellable>()
     public private(set) var finished = false
     private var subscription: Subscription!
-    private let transitionSubject = PassthroughSubject<Transition<State, Action>, Never>()
+    private let statePublisher = PassthroughSubject<State, Never>()
+    private let actionPublisher = PassthroughSubject<Action, Never>()
     public private(set) var values: [Input] = []
 
     public init(_ effect: Effect<State, Action>) {
         actionSubject.subscribe(self)
-        effect.apply(
-            transitionSubject.eraseToAnyPublisher(),
-            actionSubject.send(_:),
-            &cancellables
-        )
+
+        effect
+            .createPublisher(statePublisher.eraseToAnyPublisher(), actionPublisher.eraseToAnyPublisher())
+            .sink(receiveValue: actionSubject.send(_:))
+            .store(in: &cancellables)
     }
 
     public convenience init<Context>(_ contextEffect: ContextEffect<State, Action, Context>, in context: Context) {
@@ -47,6 +48,7 @@ public extension EffectSpy {
 
 public extension EffectSpy {
     func send(state: State, action: Action) {
-        transitionSubject.send(.init(state: state, action: action))
+        statePublisher.send(state)
+        actionPublisher.send(action)
     }
 }

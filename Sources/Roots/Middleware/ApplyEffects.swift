@@ -1,23 +1,26 @@
 import Combine
 
 struct ApplyEffect<State, Action> {
+    private let actionPublisher = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
     private let next: Dispatch<Action>
+    private let statePublisher = PassthroughSubject<State, Never>()
     private let store: AnyStateContainer<State, Action>
-    private let transitionPublisher = PassthroughSubject<Transition<State, Action>, Never>()
 
     init(_ effect: Effect<State, Action>, to store: AnyStateContainer<State, Action>, chainingTo next: @escaping Dispatch<Action>) {
         self.next = next
         self.store = store
 
-        let multicast = transitionPublisher.multicast { PassthroughSubject() }
-        effect.apply(multicast.eraseToAnyPublisher(), store.send(_:), &cancellables)
-        multicast.connect().store(in: &cancellables)
+        effect
+            .createPublisher(statePublisher.eraseToAnyPublisher(), actionPublisher.eraseToAnyPublisher())
+            .sink(receiveValue: store.send(_:))
+            .store(in: &cancellables)
     }
 
     func respond(to action: Action) {
         next(action)
-        transitionPublisher.send(.init(state: store.state, action: action))
+        statePublisher.send(store.state)
+        actionPublisher.send(action)
     }
 }
 
