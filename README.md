@@ -6,7 +6,7 @@
 
 Roots is a pattern for organizing an application's state and logic in an unidirectional manner. In doing so, an
 application follows a consistent mental model that yields benefits of being consistent, understandable, debuggable,
-and testable. The core concepts are state, actions, reducers, and effects. These concepts are inspired from many
+and testable. The core concepts of state, actions, reducers, and middleware are inspired from many
 other popular frameworks: [Redux](https://github.com/reduxjs/redux),
 [Redux-Observable](https://github.com/redux-observable/redux-observable),
 [ReSwift](https://github.com/ReSwift/ReSwift),
