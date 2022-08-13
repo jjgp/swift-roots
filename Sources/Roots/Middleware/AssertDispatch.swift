@@ -1,12 +1,14 @@
-// import Foundation
-//
-// public extension Middleware {
-//    static func assertDispatch(on queue: DispatchQueue) -> Self {
-//        .init { _, next in
-//            { action in
-//                dispatchPrecondition(condition: .onQueue(queue))
-//                next(action)
-//            }
-//        }
-//    }
-// }
+import Foundation
+
+public final class AssertDispatchPrecondition<State, Action>: Middleware<State, Action> {
+    private let predicate: DispatchPredicate
+
+    public init(predicate: DispatchPredicate) {
+        self.predicate = predicate
+    }
+
+    override public func respond(to action: Action, forwardingTo next: Dispatch<Action>) {
+        dispatchPrecondition(condition: predicate)
+        next(action)
+    }
+}
