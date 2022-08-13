@@ -1,47 +1,45 @@
+import Roots
 import XCTest
 
 class RootsTests: XCTestCase {
     func testRoots() {
-        _ = rootsBuilder()
+//        _ = rootsBuilder()
     }
 }
 
-public protocol Root {
-    associatedtype Action
+open class Root<Action> {
+    open func respond(to _: Action, chainingTo _: Dispatch<Action>) {}
 }
 
-public struct Put<Action>: Root {
+open class StatefulRoot<State, Action>: Root<Action> {}
+
+@resultBuilder
+public enum RootsBuilder {
+    static func buildBlock<Action>(_ roots: Root<Action>) -> Root<Action> {
+        roots
+    }
+}
+
+public final class Put<Action>: Root<Action> {
     let action: Action
 
     public init(_ action: Action) {
         self.action = action
     }
 
-    public init(_: (Action) -> Action) {
-        fatalError()
+    override public func respond(to action: Action, chainingTo next: Dispatch<Action>) {
+        next(action)
     }
 }
 
-public struct Take<Action>: Root {
-    public init(_: Action) where Action: Equatable {}
-
-    public init(_: (Action, Action) -> Bool) {}
+public final class Select<State, Action>: StatefulRoot<State, Action> {
+    init(@RootsBuilder _: (State) -> Root<Action>) {}
 }
 
-public struct Roots<Action> {}
+@RootsBuilder func rootsBuilder() -> Root<Count.Action> {
+    Select { (state: Count) in
+        let action: Count.Action = .decrement(state.count)
 
-@resultBuilder
-public enum RootsBuilder {
-    static func buildBlock<Action, R: Root>(_: R) -> Roots<Action> where R.Action == Action {
-        Roots()
+        Put(action)
     }
-
-    static func buildBlock<Action, R0: Root, R1: Root>(_: R0, _: R1) -> Roots<Action> where R0.Action == Action, R1.Action == Action {
-        Roots()
-    }
-}
-
-@RootsBuilder func rootsBuilder() -> Roots<String> {
-    Take("foobar")
-    Put("foobar")
 }
