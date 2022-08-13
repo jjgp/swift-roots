@@ -20,7 +20,7 @@ class CombineMiddlewareTests: XCTestCase {
         countStore.send(creator: \.addToCount, passing: \.first, -100)
         countStore.send(Thunk<Counts, Action> { dispatch, getState in
             if getState().first.count == 2 {
-                dispatch(Counts.Addition(keyPath: \.first, value: 100))
+                dispatch(Counts.Addition(to: \.first, by: 100))
             }
         })
 
@@ -37,7 +37,7 @@ private extension Effect where State == Counts, Action == Roots.Action {
                 switch action {
                 case let action as Counts.Addition:
                     if action.value != 1 {
-                        return Counts.Addition(keyPath: action.keyPath, value: 1)
+                        return Counts.Addition(to: action.keyPath, by: 1)
                     } else {
                         return nil
                     }

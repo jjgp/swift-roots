@@ -39,6 +39,11 @@ extension Counts {
     struct Addition: Action {
         let keyPath: WritableKeyPath<Counts, Count>
         let value: Int
+
+        init(to keyPath: WritableKeyPath<Counts, Count>, by value: Int) {
+            self.keyPath = keyPath
+            self.value = value
+        }
     }
 }
 
@@ -48,7 +53,7 @@ extension Counts {
     }
 
     var addToCount: (WritableKeyPath<Counts, Count>, Int) -> Action {
-        Addition.init(keyPath:value:)
+        Addition.init(to:by:)
     }
 }
 
