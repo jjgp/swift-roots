@@ -1,11 +1,7 @@
-public struct Middleware<State, Action> {
-    let createDispatch: CreateDispatch
+open class Middleware<State, Action> {
+    public var store: AnyStateContainer<State, Action>!
 
-    public init(createDispatch: @escaping CreateDispatch) {
-        self.createDispatch = createDispatch
-    }
+    public init() {}
 
-    public typealias CreateDispatch = (Store, @escaping Next) -> Dispatch<Action>
-    public typealias Next = Dispatch<Action>
-    public typealias Store = AnyStateContainer<State, Action>
+    open func respond(to _: Action, forwardingTo _: Dispatch<Action>) {}
 }

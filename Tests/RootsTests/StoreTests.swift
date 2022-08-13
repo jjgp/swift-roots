@@ -98,9 +98,9 @@ class StoreTests: XCTestCase {
         let countsSpy = PublisherSpy(countsStore)
 
         // When actions are sent to to add and to initialize
-        countsStore.send(creator: \.addToCount, passing: \.first, 10)
-        countsStore.send(creator: \.addToCount, passing: \.second, 20)
-        countsStore.send(creator: \.initialize)
+        countsStore.send(Counts.Addition(to: \.first, by: 10))
+        countsStore.send(Counts.Addition(to: \.second, by: 20))
+        countsStore.send(Counts.Initialize())
 
         // Then the state values should reflect those actions
         let countsValues = countsSpy.values.map { [$0.first.count, $0.second.count] }
@@ -122,15 +122,15 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
-        countsAnyStateContainer.send(creator: \.addToCount, passing: \.first, 10)
+        countsAnyStateContainer.send(Counts.Addition(to: \.first, by: 10))
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 10)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
-        countsAnyStateContainer.send(creator: \.addToCount, passing: \.second, 20)
+        countsAnyStateContainer.send(Counts.Addition(to: \.second, by: 20))
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 10)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 20)
 
-        countsAnyStateContainer.send(creator: \.initialize)
+        countsAnyStateContainer.send(Counts.Initialize())
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
     }
@@ -145,15 +145,15 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
-        countsAnyStateContainer.send(creator: \.addToCount, passing: \.first, 10)
+        countsAnyStateContainer.send(Counts.Addition(to: \.first, by: 10))
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
-        countsAnyStateContainer.send(creator: \.addToCount, passing: \.second, 20)
+        countsAnyStateContainer.send(Counts.Addition(to: \.second, by: 20))
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
 
-        countsAnyStateContainer.send(creator: \.initialize)
+        countsAnyStateContainer.send(Counts.Initialize())
         XCTAssertEqual(countsAnyStateContainer.state.first.count, 0)
         XCTAssertEqual(countsAnyStateContainer.state.second.count, 0)
     }
@@ -262,9 +262,9 @@ class StoreTests: XCTestCase {
 
         // When sending actions to all stores
         firstCountStore.send(.increment(10))
-        countsStore.send(creator: \.addToCount, passing: \.first, -20)
+        countsStore.send(Counts.Addition(to: \.first, by: -20))
         secondCountStore.send(.decrement(20))
-        countsStore.send(creator: \.addToCount, passing: \.second, 40)
+        countsStore.send(Counts.Addition(to: \.second, by: 40))
         firstCountStore.send(.initialize)
         secondCountStore.send(.initialize)
 
@@ -333,11 +333,11 @@ class StoreTests: XCTestCase {
         countsStore
             .sink { [weak countsStore] state in
                 if state.first.count == 10 {
-                    countsStore?.send(creator: \.addToCount, passing: \.first, -10)
+                    countsStore?.send(Counts.Addition(to: \.first, by: -10))
                 }
 
                 if state.second.count == 10 {
-                    countsStore?.send(creator: \.addToCount, passing: \.second, -10)
+                    countsStore?.send(Counts.Addition(to: \.second, by: -10))
                 }
             }
             .store(in: &cancellables)

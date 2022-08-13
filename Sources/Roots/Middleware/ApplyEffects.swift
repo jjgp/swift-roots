@@ -1,53 +1,48 @@
 import Combine
 
-struct ApplyEffect<State, Action> {
+public final class ApplyEffects<State, Action>: Middleware<State, Action> {
     private let actionPublisher = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
-    private let next: Dispatch<Action>
     private let statePublisher = PassthroughSubject<State, Never>()
-    private let store: AnyStateContainer<State, Action>
 
-    init(_ effect: Effect<State, Action>, to store: AnyStateContainer<State, Action>, chainingTo next: @escaping Dispatch<Action>) {
-        self.next = next
-        self.store = store
+    private init(effect: Effect<State, Action>) {
+        super.init()
 
         effect
             .createPublisher(statePublisher.eraseToAnyPublisher(), actionPublisher.eraseToAnyPublisher())
-            .sink(receiveValue: store.send(_:))
+            .sink { [weak self] action in
+                self?.store.send(action)
+            }
             .store(in: &cancellables)
     }
 
-    func respond(to action: Action) {
+    override public func respond(to action: Action, forwardingTo next: (Action) -> Void) {
         next(action)
         statePublisher.send(store.state)
         actionPublisher.send(action)
     }
 }
 
-public extension Middleware {
-    static func apply(effects: Effect<State, Action>...) -> Self {
-        .apply(effects: effects)
+public extension ApplyEffects {
+    convenience init(_ effects: Effect<State, Action>...) {
+        self.init(effects)
     }
 
-    static func apply(effects: [Effect<State, Action>]) -> Self {
-        .init { store, next in
-            ApplyEffect(.combine(effects: effects), to: store, chainingTo: next).respond(to:)
-        }
+    convenience init(_ effects: [Effect<State, Action>]) {
+        self.init(effect: .combine(effects: effects))
     }
 
-    static func apply<Context>(
+    convenience init<Context>(
         context: Context,
         and contextEffects: ContextEffect<State, Action, Context>...
-    ) -> Self {
-        .apply(context: context, and: contextEffects)
+    ) {
+        self.init(context: context, and: contextEffects)
     }
 
-    static func apply<Context>(
+    convenience init<Context>(
         context: Context,
         and contextEffects: [ContextEffect<State, Action, Context>]
-    ) -> Self {
-        .init { store, next in
-            ApplyEffect(.combine(context: context, and: contextEffects), to: store, chainingTo: next).respond(to:)
-        }
+    ) {
+        self.init(effect: .combine(context: context, and: contextEffects))
     }
 }

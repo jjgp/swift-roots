@@ -9,11 +9,13 @@ public struct Thunk<State, Action>: Roots.Action {
 }
 
 public extension Thunk {
-    init(priority: TaskPriority? = nil, run: @escaping (Dispatch<Action>, () -> State) async -> Void) {
+    init(priority: TaskPriority? = nil, run: @escaping AsyncRun) {
         self.run = { dispatch, getState in
             Task(priority: priority) {
                 await run(dispatch, getState)
             }
         }
     }
+
+    typealias AsyncRun = (@escaping Dispatch<Action>, @escaping () -> State) async -> Void
 }

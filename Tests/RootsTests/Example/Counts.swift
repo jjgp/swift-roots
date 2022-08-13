@@ -39,17 +39,14 @@ extension Counts {
     struct Addition: Action {
         let keyPath: WritableKeyPath<Counts, Count>
         let value: Int
-    }
-}
 
-extension Counts {
-    var initialize: Action {
-        Initialize()
+        init(to keyPath: WritableKeyPath<Counts, Count>, by value: Int) {
+            self.keyPath = keyPath
+            self.value = value
+        }
     }
 
-    var addToCount: (WritableKeyPath<Counts, Count>, Int) -> Action {
-        Addition.init(keyPath:value:)
-    }
+    typealias Thunk = Roots.Thunk<Self, Action>
 }
 
 extension Counts {
