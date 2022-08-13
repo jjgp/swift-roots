@@ -8,7 +8,7 @@ class RunThunkTests: XCTestCase {
         let countSpy = PublisherSpy(countStore)
 
         let expectation = expectation(description: "the dispatch is sent")
-        countStore.send(Thunk<Counts, Action> { dispatch, _ in
+        countStore.send(Counts.Thunk { dispatch, _ in
             await MainActor.run {
                 dispatch(Counts.Addition(to: \.first, by: 100))
                 expectation.fulfill()

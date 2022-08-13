@@ -40,7 +40,7 @@ class EffectTests: XCTestCase {
         firstCountStore.send(.increment(40))
         secondCountStore.send(.increment(40))
         // ...and the parent store sends an action to reset the state
-        countsStore.send(creator: \.initialize)
+        countsStore.send(Counts.Initialize())
 
         // Then each store should emit values that are consistent with one another
         let countsValues = countsSpy.values.map { [$0.first.count, $0.second.count] }
@@ -94,7 +94,7 @@ class EffectTests: XCTestCase {
         firstCountStore.send(.increment(20))
         otherFirstCountStore.send(.increment(20))
         // ...and the parent/global store sends an action to reset the state
-        countsStore.send(creator: \.initialize)
+        countsStore.send(Counts.Initialize())
 
         // Then the stores should all have a consistent view of the ping count
         let countsValues = countsSpy.values.map { "\($0.first.count), \($0.second.count)" }

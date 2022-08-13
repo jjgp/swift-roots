@@ -5,7 +5,7 @@ import XCTest
 class CombineMiddlewareTests: XCTestCase {
     func testCombinationOfMultipleMiddleware() {
         // Given a store with multiple middleware
-        let countStore = Store(
+        let countsStore = Store(
             initialState: Counts(),
             reducer: Counts.reducer(state:action:),
             middleware: CombineMiddleware(
@@ -13,12 +13,12 @@ class CombineMiddlewareTests: XCTestCase {
                 RunThunk()
             )
         )
-        let countSpy = PublisherSpy(countStore)
+        let countSpy = PublisherSpy(countsStore)
 
         // When actions are sent that trigger either middleware
-        countStore.send(creator: \.addToCount, passing: \.first, 100)
-        countStore.send(creator: \.addToCount, passing: \.first, -100)
-        countStore.send(Thunk<Counts, Action> { dispatch, getState in
+        countsStore.send(Counts.Addition(to: \.first, by: 100))
+        countsStore.send(Counts.Addition(to: \.first, by: -100))
+        countsStore.send(Counts.Thunk { dispatch, getState in
             if getState().first.count == 2 {
                 dispatch(Counts.Addition(to: \.first, by: 100))
             }

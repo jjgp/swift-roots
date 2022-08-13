@@ -45,16 +45,8 @@ extension Counts {
             self.value = value
         }
     }
-}
 
-extension Counts {
-    var initialize: Action {
-        Initialize()
-    }
-
-    var addToCount: (WritableKeyPath<Counts, Count>, Int) -> Action {
-        Addition.init(to:by:)
-    }
+    typealias Thunk = Roots.Thunk<Self, Action>
 }
 
 extension Counts {
