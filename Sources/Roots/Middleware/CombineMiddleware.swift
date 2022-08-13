@@ -8,26 +8,29 @@ public final class CombineMiddleware<State, Action>: Middleware<State, Action> {
         }
     }
 
-    public init(middlewares: [Middleware<State, Action>]) {
+    public init(_ middlewares: [Middleware<State, Action>]) {
         self.middlewares = middlewares
     }
 
     override public func respond(to action: Action, forwardingTo next: Dispatch<Action>) {
-        var current: Action? = action
-        var index = middlewares.endIndex
+        var current: Action! = action
 
-        while index >= 0, let action = current {
-            current = nil
-            middlewares[index].respond(to: action) { next in
+        for middleware in middlewares.reversed() {
+            guard let action = current else {
+                return
+            }
+
+            middleware.respond(to: action) { next in
                 current = next
             }
-            index -= 1
         }
+
+        next(current)
     }
 }
 
 public extension CombineMiddleware {
-    convenience init(middlewares: Middleware<State, Action>...) {
-        self.init(middlewares: middlewares)
+    convenience init(_ middlewares: Middleware<State, Action>...) {
+        self.init(middlewares)
     }
 }
