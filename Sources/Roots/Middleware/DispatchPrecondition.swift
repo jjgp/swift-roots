@@ -1,6 +1,6 @@
 import Foundation
 
-public final class AssertDispatchPrecondition<State, Action>: Middleware<State, Action> {
+public final class DispatchPrecondition<State, Action>: Middleware<State, Action> {
     private let predicate: DispatchPredicate
 
     public init(predicate: DispatchPredicate) {

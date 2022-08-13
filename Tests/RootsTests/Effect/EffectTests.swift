@@ -20,12 +20,12 @@ class EffectTests: XCTestCase {
         let firstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffect(effects: .decrementByDoubleIncrementedValue())
+            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
         )
         let secondCountStore = countsStore.scope(
             to: \.second,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffect(effects: .decrementByDoubleIncrementedValue())
+            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
         )
 
         let countsSpy = PublisherSpy(countsStore)
@@ -76,12 +76,12 @@ class EffectTests: XCTestCase {
         let firstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffect(effects: .decrementByDoubleIncrementedValue())
+            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
         )
         let otherFirstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffect(effects: .decrementByDoubleIncrementedValue())
+            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
         )
 
         let countsSpy = PublisherSpy(countsStore)

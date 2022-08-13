@@ -1,6 +1,6 @@
 import Combine
 
-public final class ApplyEffect<State, Action>: Middleware<State, Action> {
+public final class ApplyEffects<State, Action>: Middleware<State, Action> {
     private let actionPublisher = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
     private let statePublisher = PassthroughSubject<State, Never>()
@@ -23,12 +23,12 @@ public final class ApplyEffect<State, Action>: Middleware<State, Action> {
     }
 }
 
-public extension ApplyEffect {
-    convenience init(effects: Effect<State, Action>...) {
-        self.init(effects: effects)
+public extension ApplyEffects {
+    convenience init(_ effects: Effect<State, Action>...) {
+        self.init(effects)
     }
 
-    convenience init(effects: [Effect<State, Action>]) {
+    convenience init(_ effects: [Effect<State, Action>]) {
         self.init(effect: .combine(effects: effects))
     }
 
