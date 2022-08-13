@@ -16,6 +16,7 @@ public final class CombineMiddleware<State, Action>: Middleware<State, Action> {
         var index = middlewares.endIndex
         var current: Action? = action
         while index >= 0, let action = current {
+            current = nil
             middlewares[index].respond(to: action) { next in
                 current = next
             }
