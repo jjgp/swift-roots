@@ -2,7 +2,7 @@ public protocol SendScheduler {
     func schedule<Action>(action: Action, sendingTo send: @escaping Dispatch<Action>)
 }
 
-public final class OneAtATimeSendScheduler: SendScheduler {
+public final class BarrierSendScheduler: SendScheduler {
     var isSending = false
     var sendPendingBuffer: [SendPending] = []
 
