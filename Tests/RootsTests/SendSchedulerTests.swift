@@ -4,7 +4,7 @@ import XCTest
 class OneAtATimeSendSchedulerTests: XCTestCase {
     func testRecursiveSendingIsBuffered() {
         // Given a OneAtATimeSendScheduler
-        let sendScheduler = BarrierSendScheduler()
+        let sendScheduler = BufferedRecursionSendScheduler()
 
         var actions = [String]()
         var send: Dispatch<String>!

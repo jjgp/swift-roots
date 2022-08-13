@@ -6,7 +6,7 @@ public final class Store<State, Action>: Publisher, StateContainer {
     private let stateBinding: StateBinding<State>
 
     public init(
-        sendScheduler: SendScheduler = BarrierSendScheduler(),
+        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
         stateBinding: StateBinding<State>,
         reducer: @escaping Reducer<State, Action>,
         middleware: Middleware<State, Action>? = nil
@@ -34,7 +34,7 @@ public final class Store<State, Action>: Publisher, StateContainer {
 
 public extension Store {
     convenience init(
-        sendScheduler: SendScheduler = BarrierSendScheduler(),
+        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
         initialState: State,
         reducer: @escaping Reducer<State, Action>,
         middleware: Middleware<State, Action>? = nil
@@ -48,7 +48,7 @@ public extension Store {
     }
 
     convenience init(
-        sendScheduler: SendScheduler = BarrierSendScheduler(),
+        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
         initialState: State,
         reducer: @escaping Reducer<State, Action>,
         middleware: Middleware<State, Action>? = nil
