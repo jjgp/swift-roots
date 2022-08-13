@@ -4,6 +4,7 @@ import XCTest
 
 class ApplyEffectsTests: XCTestCase {
     func testApplicationOfMultipleEffects() {
+        // Given a store with multiple effects
         let countStore = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
@@ -14,9 +15,11 @@ class ApplyEffectsTests: XCTestCase {
         )
         let countSpy = PublisherSpy(countStore)
 
+        // When actions are sent that trigger either effect
         countStore.send(.increment(1))
         countStore.send(.decrement(2))
 
+        // Then the state should be updated according to those effects
         let values = countSpy.values.map(\.count)
         XCTAssertEqual(values, [0, 1, 3, 1, 0])
     }

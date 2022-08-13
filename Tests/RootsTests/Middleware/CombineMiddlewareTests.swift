@@ -4,9 +4,10 @@ import XCTest
 
 class CombineMiddlewareTests: XCTestCase {
     func testCombinationOfMultipleMiddleware() {
+        // Given a store with multiple middleware
         let countStore = Store(
-            initialState: Count(),
-            reducer: Count.reducer(state:action:),
+            initialState: Counts(),
+            reducer: Counts.reducer(state:action:),
             middleware: CombineMiddleware(
                 ApplyEffects(.settIncrementAndDecrementValuesToOne()),
                 RunThunk()
@@ -14,23 +15,33 @@ class CombineMiddlewareTests: XCTestCase {
         )
         let countSpy = PublisherSpy(countStore)
 
-        countStore.send(.increment(100))
-        countStore.send(.decrement(100))
+        // When actions are sent that trigger either middleware
+        countStore.send(creator: \.addToCount, passing: \.first, 100)
+        countStore.send(creator: \.addToCount, passing: \.first, -100)
+        countStore.send(Thunk<Counts, Action> { dispatch, getState in
+            if getState().first.count == 2 {
+                dispatch(Counts.Addition(keyPath: \.first, value: 100))
+            }
+        })
 
-        let values = countSpy.values.map(\.count)
-        XCTAssertEqual(values, [0, 100, 101, 1, 0])
+        // Then the state should be updated according to those middleware
+        let values = countSpy.values.map(\.first.count)
+        XCTAssertEqual(values, [0, 100, 101, 1, 2, 102, 103])
     }
 }
 
-private extension Effect where State == Count, Action == Count.Action {
+private extension Effect where State == Counts, Action == Roots.Action {
     static func settIncrementAndDecrementValuesToOne() -> Self {
         Effect { _, actions in
             actions.compactMap { action in
-                if case let .increment(value) = action, value != 1 {
-                    return .increment(1)
-                } else if case let .decrement(value) = action, value != 1 {
-                    return .decrement(1)
-                } else {
+                switch action {
+                case let action as Counts.Addition:
+                    if action.value != 1 {
+                        return Counts.Addition(keyPath: action.keyPath, value: 1)
+                    } else {
+                        return nil
+                    }
+                default:
                     return nil
                 }
             }
