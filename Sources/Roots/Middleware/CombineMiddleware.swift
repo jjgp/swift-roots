@@ -13,8 +13,9 @@ public final class CombineMiddleware<State, Action>: Middleware<State, Action> {
     }
 
     override public func respond(to action: Action, forwardingTo next: Dispatch<Action>) {
-        var index = middlewares.endIndex
         var current: Action? = action
+        var index = middlewares.endIndex
+
         while index >= 0, let action = current {
             current = nil
             middlewares[index].respond(to: action) { next in
