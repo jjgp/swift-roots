@@ -1,8 +1,8 @@
 public struct AnyStateContainer<State, Action>: StateContainer {
-    private let getState: () -> State
+    private let getState: GetState<State>
     private let dispatch: Dispatch<Action>
 
-    public init(getState: @escaping () -> State, send: @escaping Dispatch<Action>) {
+    public init(getState: @escaping GetState<State>, send: @escaping Dispatch<Action>) {
         self.getState = getState
         dispatch = send
     }

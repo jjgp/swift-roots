@@ -2,6 +2,8 @@ public protocol Action {}
 
 public typealias Dispatch<Action> = (Action) -> Void
 
+public typealias GetState<State> = () -> State
+
 public typealias Reducer<State, Action> = (inout State, Action) -> State
 
 public protocol StateContainer {
