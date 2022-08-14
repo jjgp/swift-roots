@@ -1,5 +1,4 @@
 import Combine
-import SwiftUI
 
 public struct ContextEffect<State, Action, Context> {
     public let createEffect: CreateEffect
