@@ -1,7 +1,7 @@
 import Combine
 
 public struct StateBinding<State>: Publisher {
-    private let getState: () -> State
+    private let getState: GetState<State>
     private let setState: (State) -> Void
     private let statePublisher: AnyPublisher<State, Never>
     public var wrappedState: State {
@@ -14,7 +14,7 @@ public struct StateBinding<State>: Publisher {
     }
 
     private init(
-        getState: @escaping () -> State,
+        getState: @escaping GetState<State>,
         setState: @escaping (State) -> Void,
         statePublisher: AnyPublisher<State, Never>
     ) {

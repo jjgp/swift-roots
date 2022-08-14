@@ -1,45 +1,60 @@
 import Roots
+import SwiftUI
 import XCTest
 
 class RootsTests: XCTestCase {
-    func testRoots() {
-//        _ = rootsBuilder()
+    final class Foobar: Saga<Count, Count.Action> {
+        @MiddlewareBuilder override var run: Middleware<Count, Count.Action> {
+            Put(.increment(100))
+            Select { state in
+                Put(.increment(state.count))
+            }
+        }
     }
 }
-
-open class Root<Action> {
-    open func respond(to _: Action, chainingTo _: Dispatch<Action>) {}
-}
-
-open class StatefulRoot<State, Action>: Root<Action> {}
 
 @resultBuilder
-public enum RootsBuilder {
-    static func buildBlock<Action>(_ roots: Root<Action>) -> Root<Action> {
-        roots
+public enum MiddlewareBuilder {
+    static func buildBlock<State, Action>(_ middlewares: Middleware<State, Action>...) -> Middleware<State, Action> {
+        CombineMiddleware(middlewares)
     }
 }
 
-public final class Put<Action>: Root<Action> {
-    let action: Action
+public protocol SagaBuilder {
+    associatedtype State
+    associatedtype Action
 
-    public init(_ action: Action) {
-        self.action = action
-    }
+    @MiddlewareBuilder var run: Middleware<State, Action> { get }
+}
 
-    override public func respond(to action: Action, chainingTo next: Dispatch<Action>) {
-        next(action)
+open class Saga<State, Action>: SagaBuilder {
+    @MiddlewareBuilder open var run: Middleware<State, Action> {
+        Never()
     }
 }
 
-public final class Select<State, Action>: StatefulRoot<State, Action> {
-    init(@RootsBuilder _: (State) -> Root<Action>) {}
-}
+public extension Saga {
+    final class Never: Middleware<State, Action> {
+        override public func respond(to _: Action, forwardingTo _: Dispatch<Action>) {
+            fatalError()
+        }
+    }
 
-@RootsBuilder func rootsBuilder() -> Root<Count.Action> {
-    Select { (state: Count) in
-        let action: Count.Action = .decrement(state.count)
+    final class Put: Middleware<State, Action> {
+        let action: Action
 
-        Put(action)
+        public init(_ action: Action) {
+            self.action = action
+        }
+
+        override public func respond(to action: Action, forwardingTo next: Dispatch<Action>) {
+            next(action)
+        }
+    }
+
+    final class Select: Middleware<State, Action> {
+        init(@MiddlewareBuilder _: (State) -> Middleware<State, Action>) {}
+
+        override public func respond(to _: Action, forwardingTo _: Dispatch<Action>) {}
     }
 }

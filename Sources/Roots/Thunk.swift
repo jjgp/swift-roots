@@ -5,7 +5,7 @@ public struct Thunk<State, Action>: Roots.Action {
         self.run = run
     }
 
-    public typealias Run = (@escaping Dispatch<Action>, @escaping () -> State) -> Void
+    public typealias Run = (@escaping Dispatch<Action>, @escaping GetState<State>) -> Void
 }
 
 public extension Thunk {
@@ -17,5 +17,5 @@ public extension Thunk {
         }
     }
 
-    typealias AsyncRun = (@escaping Dispatch<Action>, @escaping () -> State) async -> Void
+    typealias AsyncRun = (@escaping Dispatch<Action>, @escaping GetState<State>) async -> Void
 }
