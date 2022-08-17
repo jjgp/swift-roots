@@ -1,7 +1,7 @@
 import Combine
 import Roots
 
-public class EffectSpy<State, Action>: Subscriber {
+public class EpicSpy<State, Action>: Subscriber {
     private let actionSubject = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
     public private(set) var finished = false
@@ -10,21 +10,17 @@ public class EffectSpy<State, Action>: Subscriber {
     private let actionPublisher = PassthroughSubject<Action, Never>()
     public private(set) var values: [Input] = []
 
-    public init(_ effect: Effect<State, Action>) {
+    public init(_ epic: Epic<State, Action>) {
         actionSubject.subscribe(self)
 
-        effect
+        epic
             .createPublisher(statePublisher.eraseToAnyPublisher(), actionPublisher.eraseToAnyPublisher())
             .sink(receiveValue: actionSubject.send(_:))
             .store(in: &cancellables)
     }
-
-    public convenience init<Context>(_ contextEffect: ContextEffect<State, Action, Context>, in context: Context) {
-        self.init(contextEffect.createEffect(context))
-    }
 }
 
-public extension EffectSpy {
+public extension EpicSpy {
     func receive(subscription: Subscription) {
         self.subscription = subscription
         subscription.request(.unlimited)
@@ -46,7 +42,7 @@ public extension EffectSpy {
     typealias Failure = Never
 }
 
-public extension EffectSpy {
+public extension EpicSpy {
     func send(state: State, action: Action) {
         statePublisher.send(state)
         actionPublisher.send(action)

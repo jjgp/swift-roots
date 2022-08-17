@@ -2,7 +2,7 @@ import Roots
 import RootsTest
 import XCTest
 
-class CombineEffectTests: XCTestCase {
+class CombineEpicsTests: XCTestCase {
     /*
      Both effects in either test should be applied to the store after combining them into a single effect with
      combine(effect:). Note that the effects are downstream of the transition publisher and Combine makes no guarantee
@@ -11,7 +11,7 @@ class CombineEffectTests: XCTestCase {
 
     func testCombineEffects() {
         // Given an effect that increments the value to 100 and another that decrements the a count of 100 to 0
-        let spy = EffectSpy(.combine(effects: .incrementTo100(), .decrement100To0()))
+        let spy = EpicSpy(.combine(epics: .incrementTo100(), .decrement100To0()))
 
         // When sending any value...
         var state = Count(count: 1)
@@ -26,8 +26,8 @@ class CombineEffectTests: XCTestCase {
 
     func testCombineContextWithEffects() {
         // Given a context effect that increments the value to a value specified by the context and another that decrements to 0
-        let spy = EffectSpy(
-            .combine(context: Context(value: 100), and: .incrementToContextValue(), .decrementContextValueTo0())
+        let spy = EpicSpy(
+            .combine(dependencies: Dependencies(value: 100), and: .incrementToContextValue(), .decrementContextValueTo0())
         )
 
         // When sending any value...
@@ -40,14 +40,14 @@ class CombineEffectTests: XCTestCase {
     }
 }
 
-private extension CombineEffectTests {
-    struct Context {
+private extension CombineEpicsTests {
+    struct Dependencies {
         let value: Int
     }
 }
 
-private extension ContextEffect {
-    static func incrementToContextValue() -> CountContextEffect {
+private extension DependentEpic {
+    static func incrementToContextValue() -> CountDependentEpic {
         .init { states, actions, context in
             states
                 .filter { state in
@@ -64,7 +64,7 @@ private extension ContextEffect {
         }
     }
 
-    static func decrementContextValueTo0() -> CountContextEffect {
+    static func decrementContextValueTo0() -> CountDependentEpic {
         .init { states, _, context in
             states
                 .filter { state in
@@ -76,11 +76,11 @@ private extension ContextEffect {
         }
     }
 
-    typealias CountContextEffect = ContextEffect<Count, Count.Action, CombineEffectTests.Context>
+    typealias CountDependentEpic = DependentEpic<Count, Count.Action, CombineEpicsTests.Dependencies>
 }
 
-private extension Effect {
-    static func incrementTo100() -> CountEffect {
+private extension Epic {
+    static func incrementTo100() -> CountEpic {
         .init { states, actions in
             states
                 .filter { state in
@@ -97,7 +97,7 @@ private extension Effect {
         }
     }
 
-    static func decrement100To0() -> CountEffect {
+    static func decrement100To0() -> CountEpic {
         .init { states, _ in
             states
                 .filter { state in
@@ -109,5 +109,5 @@ private extension Effect {
         }
     }
 
-    typealias CountEffect = Effect<Count, Count.Action>
+    typealias CountEpic = Epic<Count, Count.Action>
 }

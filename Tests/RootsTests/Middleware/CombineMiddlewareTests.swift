@@ -9,7 +9,7 @@ class CombineMiddlewareTests: XCTestCase {
             initialState: Counts(),
             reducer: Counts.reducer(state:action:),
             middleware: CombineMiddleware(
-                ApplyEffects(.settIncrementAndDecrementValuesToOne()),
+                ApplyEpics(.settIncrementAndDecrementValuesToOne()),
                 RunThunk()
             )
         )
@@ -30,9 +30,9 @@ class CombineMiddlewareTests: XCTestCase {
     }
 }
 
-private extension Effect where State == Counts, Action == Roots.Action {
-    static func settIncrementAndDecrementValuesToOne() -> Self {
-        Effect { _, actions in
+private extension Epic {
+    static func settIncrementAndDecrementValuesToOne() -> CountsEpic {
+        CountsEpic { _, actions in
             actions.compactMap { action in
                 switch action {
                 case let action as Counts.Addition:
@@ -47,4 +47,6 @@ private extension Effect where State == Counts, Action == Roots.Action {
             }
         }
     }
+
+    typealias CountsEpic = Epic<Counts, Roots.Action>
 }

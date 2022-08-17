@@ -2,13 +2,13 @@ import Roots
 import RootsTest
 import XCTest
 
-class ApplyEffectsTests: XCTestCase {
+class ApplyEpicsTests: XCTestCase {
     func testApplicationOfMultipleEffects() {
         // Given a store with multiple effects
         let countStore = Store(
             initialState: Count(),
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffects(
+            middleware: ApplyEpics(
                 .decrementByPreviousOdd(),
                 .incrementByNextEven()
             )
@@ -25,8 +25,8 @@ class ApplyEffectsTests: XCTestCase {
     }
 }
 
-private extension Effect {
-    static func decrementByPreviousOdd() -> CountEffect {
+private extension Epic {
+    static func decrementByPreviousOdd() -> CountEpic {
         .init { _, actions in
             actions.compactMap { action in
                 if case let .decrement(value) = action, value % 2 == 0 {
@@ -38,7 +38,7 @@ private extension Effect {
         }
     }
 
-    static func incrementByNextEven() -> CountEffect {
+    static func incrementByNextEven() -> CountEpic {
         .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action, value % 2 == 1 {
@@ -50,5 +50,5 @@ private extension Effect {
         }
     }
 
-    typealias CountEffect = Effect<Count, Count.Action>
+    typealias CountEpic = Epic<Count, Count.Action>
 }

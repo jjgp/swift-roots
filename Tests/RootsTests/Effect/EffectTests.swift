@@ -5,7 +5,7 @@ import XCTest
 class EffectTests: XCTestCase {
     func testEffect() {
         // Given an effect that maps increments to decrements
-        let spy = EffectSpy(.decrementByIncrementedValue())
+        let spy = EpicSpy(.decrementByIncrementedValue())
 
         // When an increment is sent
         spy.send(state: .init(), action: .increment(10))
@@ -20,12 +20,12 @@ class EffectTests: XCTestCase {
         let firstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
+            middleware: ApplyEpics(.decrementByDoubleIncrementedValue())
         )
         let secondCountStore = countsStore.scope(
             to: \.second,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
+            middleware: ApplyEpics(.decrementByDoubleIncrementedValue())
         )
 
         let countsSpy = PublisherSpy(countsStore)
@@ -76,12 +76,12 @@ class EffectTests: XCTestCase {
         let firstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
+            middleware: ApplyEpics(.decrementByDoubleIncrementedValue())
         )
         let otherFirstCountStore = countsStore.scope(
             to: \.first,
             reducer: Count.reducer(state:action:),
-            middleware: ApplyEffects(.decrementByDoubleIncrementedValue())
+            middleware: ApplyEpics(.decrementByDoubleIncrementedValue())
         )
 
         let countsSpy = PublisherSpy(countsStore)
@@ -120,8 +120,8 @@ class EffectTests: XCTestCase {
     }
 }
 
-private extension Effect {
-    static func decrementByIncrementedValue() -> CountEffect {
+private extension Epic {
+    static func decrementByIncrementedValue() -> CountEpic {
         .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action {
@@ -133,7 +133,7 @@ private extension Effect {
         }
     }
 
-    static func decrementByDoubleIncrementedValue() -> CountEffect {
+    static func decrementByDoubleIncrementedValue() -> CountEpic {
         .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action {
@@ -145,5 +145,5 @@ private extension Effect {
         }
     }
 
-    typealias CountEffect = Effect<Count, Count.Action>
+    typealias CountEpic = Epic<Count, Count.Action>
 }
