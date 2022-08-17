@@ -15,15 +15,15 @@ class ContextEffectTests: XCTestCase {
     }
 }
 
-private extension XCTestCase {
+private extension ContextEffectTests {
     struct Context {
         let value: Int
     }
 }
 
-private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
-    static func incrementToContextValue() -> Self {
-        ContextEffect { states, actions, context in
+private extension ContextEffect {
+    static func incrementToContextValue() -> CountContextEffect {
+        .init { states, actions, context in
             states
                 .filter { state in
                     state.count < context.value
@@ -38,4 +38,6 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
                 }
         }
     }
+
+    typealias CountContextEffect = ContextEffect<Count, Count.Action, ContextEffectTests.Context>
 }

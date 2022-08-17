@@ -1,7 +1,7 @@
 @testable import Roots
 import XCTest
 
-class OneAtATimeSendSchedulerTests: XCTestCase {
+class BufferedRecursionSendSchedulerTests: XCTestCase {
     func testRecursiveSendingIsBuffered() {
         // Given a OneAtATimeSendScheduler
         let sendScheduler = BufferedRecursionSendScheduler()

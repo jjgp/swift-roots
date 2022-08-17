@@ -120,9 +120,9 @@ class EffectTests: XCTestCase {
     }
 }
 
-private extension Effect where State == Count, Action == Count.Action {
-    static func decrementByIncrementedValue() -> Self {
-        Effect { _, actions in
+private extension Effect {
+    static func decrementByIncrementedValue() -> CountEffect {
+        .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action {
                     return .decrement(value)
@@ -133,8 +133,8 @@ private extension Effect where State == Count, Action == Count.Action {
         }
     }
 
-    static func decrementByDoubleIncrementedValue() -> Self {
-        Effect { _, actions in
+    static func decrementByDoubleIncrementedValue() -> CountEffect {
+        .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action {
                     return .decrement(2 * value)
@@ -144,4 +144,6 @@ private extension Effect where State == Count, Action == Count.Action {
             }
         }
     }
+
+    typealias CountEffect = Effect<Count, Count.Action>
 }

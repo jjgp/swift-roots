@@ -25,9 +25,9 @@ class ApplyEffectsTests: XCTestCase {
     }
 }
 
-private extension Effect where State == Count, Action == Count.Action {
-    static func decrementByPreviousOdd() -> Self {
-        Effect { _, actions in
+private extension Effect {
+    static func decrementByPreviousOdd() -> CountEffect {
+        .init { _, actions in
             actions.compactMap { action in
                 if case let .decrement(value) = action, value % 2 == 0 {
                     return .decrement(value - 1)
@@ -38,8 +38,8 @@ private extension Effect where State == Count, Action == Count.Action {
         }
     }
 
-    static func incrementByNextEven() -> Self {
-        Effect { _, actions in
+    static func incrementByNextEven() -> CountEffect {
+        .init { _, actions in
             actions.compactMap { action in
                 if case let .increment(value) = action, value % 2 == 1 {
                     return .increment(value + 1)
@@ -49,4 +49,6 @@ private extension Effect where State == Count, Action == Count.Action {
             }
         }
     }
+
+    typealias CountEffect = Effect<Count, Count.Action>
 }

@@ -40,15 +40,15 @@ class CombineEffectTests: XCTestCase {
     }
 }
 
-private extension XCTestCase {
+private extension CombineEffectTests {
     struct Context {
         let value: Int
     }
 }
 
-private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
-    static func incrementToContextValue() -> Self {
-        ContextEffect { states, actions, context in
+private extension ContextEffect {
+    static func incrementToContextValue() -> CountContextEffect {
+        .init { states, actions, context in
             states
                 .filter { state in
                     state.count < context.value
@@ -64,8 +64,8 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
         }
     }
 
-    static func decrementContextValueTo0() -> Self {
-        ContextEffect { states, _, context in
+    static func decrementContextValueTo0() -> CountContextEffect {
+        .init { states, _, context in
             states
                 .filter { state in
                     state.count == context.value
@@ -75,11 +75,13 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
                 }
         }
     }
+
+    typealias CountContextEffect = ContextEffect<Count, Count.Action, CombineEffectTests.Context>
 }
 
-private extension Effect where State == Count, Action == Count.Action {
-    static func incrementTo100() -> Self {
-        Effect { states, actions in
+private extension Effect {
+    static func incrementTo100() -> CountEffect {
+        .init { states, actions in
             states
                 .filter { state in
                     state.count < 100
@@ -95,8 +97,8 @@ private extension Effect where State == Count, Action == Count.Action {
         }
     }
 
-    static func decrement100To0() -> Self {
-        Effect { states, _ in
+    static func decrement100To0() -> CountEffect {
+        .init { states, _ in
             states
                 .filter { state in
                     state.count == 100
@@ -106,4 +108,6 @@ private extension Effect where State == Count, Action == Count.Action {
                 }
         }
     }
+
+    typealias CountEffect = Effect<Count, Count.Action>
 }
