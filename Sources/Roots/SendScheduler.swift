@@ -3,8 +3,8 @@ public protocol SendScheduler {
 }
 
 public final class BufferedRecursionSendScheduler: SendScheduler {
-    var isSending = false
-    var sendPendingBuffer: [SendPending] = []
+    private var isSending = false
+    private var sendPendingBuffer: [SendPending] = []
 
     public init() {}
 
@@ -18,10 +18,12 @@ public final class BufferedRecursionSendScheduler: SendScheduler {
 
         isSending = true
         send(action)
-        while !sendPendingBuffer.isEmpty {
-            sendPendingBuffer.swapAt(0, sendPendingBuffer.count - 1)
-            sendPendingBuffer.removeLast()()
+        var index = 0
+        while index < sendPendingBuffer.count {
+            sendPendingBuffer[index]()
+            index += 1
         }
+        sendPendingBuffer.removeAll()
         isSending = false
     }
 

@@ -13,11 +13,6 @@ class OneAtATimeSendSchedulerTests: XCTestCase {
             if action == "foo" {
                 sendScheduler.schedule(action: "bar", sendingTo: send)
                 sendScheduler.schedule(action: "baz", sendingTo: send)
-                XCTAssertEqual(sendScheduler.sendPendingBuffer.count, 2)
-            } else if action == "bar" {
-                XCTAssertEqual(sendScheduler.sendPendingBuffer.count, 1)
-            } else if action == "baz" {
-                XCTAssertEqual(sendScheduler.sendPendingBuffer.count, 0)
             }
         }
 
