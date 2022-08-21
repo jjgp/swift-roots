@@ -15,11 +15,12 @@ class CombineMiddlewareTests: XCTestCase {
         // When actions are sent that trigger either middleware
         countsStore.send(Counts.Addition(to: \.first, by: 100))
         countsStore.send(Counts.Addition(to: \.first, by: -100))
-        countsStore.run(thunk: Counts.Thunk { dispatch, getState in
+
+        countsStore.run { dispatch, getState in
             if getState().first.count == 2 {
                 dispatch(Counts.Addition(to: \.first, by: 100))
             }
-        })
+        }
 
         // Then the state should be updated according to those middleware
         let values = countSpy.values.map(\.first.count)

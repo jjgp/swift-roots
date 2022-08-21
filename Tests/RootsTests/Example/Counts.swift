@@ -45,8 +45,6 @@ extension Counts {
             self.value = value
         }
     }
-
-    typealias Thunk = BlockThunk<Self, Action>
 }
 
 extension Counts {
