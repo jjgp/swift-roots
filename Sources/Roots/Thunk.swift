@@ -1,4 +1,4 @@
-public struct Thunk<State, Action>: Roots.Action {
+public struct Thunk<State, Action> {
     let run: Run
 
     public init(run: @escaping Run) {
@@ -18,4 +18,13 @@ public extension Thunk {
     }
 
     typealias AsyncRun = (@escaping Dispatch<Action>, @escaping () -> State) async -> Void
+}
+
+public extension Store {
+    func run(thunk: Thunk<State, Action>) {
+        let store = toAnyStateContainer()
+        thunk.run(store.send(_:)) {
+            store.state
+        }
+    }
 }

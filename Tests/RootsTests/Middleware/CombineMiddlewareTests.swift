@@ -8,17 +8,14 @@ class CombineMiddlewareTests: XCTestCase {
         let countsStore = Store(
             initialState: Counts(),
             reducer: Counts.reducer(state:action:),
-            middleware: CombineMiddleware(
-                ApplyEffects(.settIncrementAndDecrementValuesToOne()),
-                RunThunk()
-            )
+            middleware: ApplyEffects(.settIncrementAndDecrementValuesToOne())
         )
         let countSpy = PublisherSpy(countsStore)
 
         // When actions are sent that trigger either middleware
         countsStore.send(Counts.Addition(to: \.first, by: 100))
         countsStore.send(Counts.Addition(to: \.first, by: -100))
-        countsStore.send(Counts.Thunk { dispatch, getState in
+        countsStore.run(thunk: Counts.Thunk { dispatch, getState in
             if getState().first.count == 2 {
                 dispatch(Counts.Addition(to: \.first, by: 100))
             }
