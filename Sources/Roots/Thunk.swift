@@ -1,30 +1,55 @@
-public struct Thunk<State, Action> {
-    let run: Run
+open class Thunk<State, Action> {
+    public var store: AnyStateContainer<State, Action>!
 
-    public init(run: @escaping Run) {
-        self.run = run
-    }
+    public init() {}
 
-    public typealias Run = (@escaping Dispatch<Action>, @escaping () -> State) -> Void
+    open func run() {}
 }
 
-public extension Thunk {
-    init(priority: TaskPriority? = nil, run: @escaping AsyncRun) {
-        self.run = { dispatch, getState in
+open class AsyncThunk<State, Action>: Thunk<State, Action> {
+    let priority: TaskPriority?
+
+    public init(priority: TaskPriority? = nil) {
+        self.priority = priority
+    }
+
+    override public func run() {
+        Task(priority: priority) {
+            await run()
+        }
+    }
+
+    open func run() async {}
+}
+
+public final class BlockThunk<State, Action>: Thunk<State, Action> {
+    let block: Block
+
+    public init(block: @escaping Block) {
+        self.block = block
+    }
+
+    public init(priority: TaskPriority? = nil, block: @escaping AsyncBlock) {
+        self.block = { dispatch, getState in
             Task(priority: priority) {
-                await run(dispatch, getState)
+                await block(dispatch, getState)
             }
         }
     }
 
-    typealias AsyncRun = (@escaping Dispatch<Action>, @escaping () -> State) async -> Void
+    override public func run() {
+        block(store.send(_:)) {
+            self.store.state
+        }
+    }
+
+    public typealias AsyncBlock = (@escaping Dispatch<Action>, @escaping () -> State) async -> Void
+    public typealias Block = (@escaping Dispatch<Action>, @escaping () -> State) -> Void
 }
 
 public extension Store {
     func run(thunk: Thunk<State, Action>) {
-        let store = toAnyStateContainer()
-        thunk.run(store.send(_:)) {
-            store.state
-        }
+        thunk.store = toAnyStateContainer()
+        thunk.run()
     }
 }

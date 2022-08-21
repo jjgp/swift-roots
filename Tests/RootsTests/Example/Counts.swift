@@ -46,7 +46,7 @@ extension Counts {
         }
     }
 
-    typealias Thunk = Roots.Thunk<Self, Action>
+    typealias Thunk = BlockThunk<Self, Action>
 }
 
 extension Counts {
