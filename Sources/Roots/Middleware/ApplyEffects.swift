@@ -1,14 +1,14 @@
 import Combine
 
-public final class ApplyEffects<State, Action>: Middleware<State, Action> {
+public final class ApplyEpics<State, Action>: Middleware<State, Action> {
     private let actionPublisher = PassthroughSubject<Action, Never>()
     private var cancellables = Set<AnyCancellable>()
     private let statePublisher = PassthroughSubject<State, Never>()
 
-    private init(effect: Effect<State, Action>) {
+    private init(epic: Epic<State, Action>) {
         super.init()
 
-        effect
+        epic
             .createPublisher(statePublisher.eraseToAnyPublisher(), actionPublisher.eraseToAnyPublisher())
             .sink { [weak self] action in
                 self?.store.send(action)
@@ -23,26 +23,26 @@ public final class ApplyEffects<State, Action>: Middleware<State, Action> {
     }
 }
 
-public extension ApplyEffects {
-    convenience init(_ effects: Effect<State, Action>...) {
-        self.init(effects)
+public extension ApplyEpics {
+    convenience init(_ epics: Epic<State, Action>...) {
+        self.init(epics)
     }
 
-    convenience init(_ effects: [Effect<State, Action>]) {
-        self.init(effect: .combine(effects: effects))
+    convenience init(_ epics: [Epic<State, Action>]) {
+        self.init(epic: .combine(epics: epics))
     }
 
-    convenience init<Context>(
-        context: Context,
-        and contextEffects: ContextEffect<State, Action, Context>...
+    convenience init<Dependencies>(
+        dependencies: Dependencies,
+        and dependentEpics: DependentEpic<State, Action, Dependencies>...
     ) {
-        self.init(context: context, and: contextEffects)
+        self.init(dependencies: dependencies, and: dependentEpics)
     }
 
-    convenience init<Context>(
-        context: Context,
-        and contextEffects: [ContextEffect<State, Action, Context>]
+    convenience init<Dependencies>(
+        dependencies: Dependencies,
+        and dependentEpics: [DependentEpic<State, Action, Dependencies>]
     ) {
-        self.init(effect: .combine(context: context, and: contextEffects))
+        self.init(epic: .combine(dependencies: dependencies, and: dependentEpics))
     }
 }

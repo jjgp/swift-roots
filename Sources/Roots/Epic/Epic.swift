@@ -1,6 +1,6 @@
 import Combine
 
-public struct Effect<State, Action> {
+public struct Epic<State, Action> {
     public let createPublisher: CreatePublisher
 
     public init<P: Publisher>(createPublisher: @escaping (States, Actions) -> P) where P.Failure == Never, P.Output == Action {

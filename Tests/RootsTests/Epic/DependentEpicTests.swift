@@ -2,10 +2,10 @@ import Roots
 import RootsTest
 import XCTest
 
-class ContextEffectTests: XCTestCase {
+class DependentEpicTests: XCTestCase {
     func testContextEffect() {
         // Given an context effect that increments the value to a value specified by the context
-        let spy = EffectSpy(.incrementToContextValue(), in: Context(value: 100))
+        let spy = EpicSpy(.incrementToContextValue().createEpic(Dependencies(value: 100)))
 
         // When an increment is less than the value
         spy.send(state: .init(count: 1), action: .increment(1))
@@ -15,15 +15,15 @@ class ContextEffectTests: XCTestCase {
     }
 }
 
-private extension XCTestCase {
-    struct Context {
+private extension DependentEpicTests {
+    struct Dependencies {
         let value: Int
     }
 }
 
-private extension ContextEffect where State == Count, Action == Count.Action, Context == XCTestCase.Context {
-    static func incrementToContextValue() -> Self {
-        ContextEffect { states, actions, context in
+private extension Epic {
+    static func incrementToContextValue() -> CountDependentEpic {
+        .init { states, actions, context in
             states
                 .filter { state in
                     state.count < context.value
@@ -38,4 +38,6 @@ private extension ContextEffect where State == Count, Action == Count.Action, Co
                 }
         }
     }
+
+    typealias CountDependentEpic = DependentEpic<Count, Count.Action, DependentEpicTests.Dependencies>
 }
