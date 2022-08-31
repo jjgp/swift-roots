@@ -10,11 +10,11 @@ public struct BridgedPublisher<Output>: Combine.Publisher {
     public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
         let subscription = Subscription<S>()
         subscription.subscriber = subscriber
+        subscriber.receive(subscription: subscription)
+
         subscription.cancellable = subscribeReceiveValue { [weak subscription] value in
             subscription?.receive(value)
         }
-
-        subscriber.receive(subscription: subscription)
     }
 
     public typealias Failure = Never
@@ -23,20 +23,35 @@ public struct BridgedPublisher<Output>: Combine.Publisher {
 private extension BridgedPublisher {
     class Subscription<S: Subscriber>: Combine.Subscription where S.Input == Output {
         var cancellable: Cancellable?
+        private var demand: Subscribers.Demand = .none
+        private let lock: UnfairLock = .init()
         var subscriber: S?
 
         func receive(_ input: Output) {
-            _ = subscriber?.receive(input)
+            lock {
+                guard demand > 0, let subscriber = subscriber else {
+                    return
+                }
+
+                demand -= 1
+                demand += subscriber.receive(input)
+            }
         }
 
-        func request(_: Subscribers.Demand) {
-            // TODO: handle demand
+        func request(_ demand: Subscribers.Demand) {
+            lock {
+                guard subscriber != nil else {
+                    return
+                }
+
+                self.demand += demand
+            }
         }
 
         func cancel() {
-            subscriber = nil
-            cancellable?.cancel()
-            cancellable = nil
+            lock {
+                subscriber = nil
+            }
         }
     }
 }
