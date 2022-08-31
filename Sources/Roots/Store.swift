@@ -1,151 +1,96 @@
-import Combine
+public final class Store<State>: Publisher, StateContainer {
+    private var dispatch: Dispatch!
+    private let dispatcher: Dispatcher
+    private var subject: BindingValueSubject<State>
 
-public final class Store<State, Action>: Publisher, StateContainer {
-    private var innerSend: Dispatch<Action>!
-    private var sendScheduler: SendScheduler
-    private let stateBinding: StateBinding<State>
-
-    public init(
-        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
-        stateBinding: StateBinding<State>,
-        reducer: @escaping Reducer<State, Action>,
-        middleware: Middleware<State, Action>? = nil
+    private init(
+        dispatcher: Dispatcher,
+        middleware: Middleware<State>?,
+        mutation: @escaping Mutation<State>,
+        subject: BindingValueSubject<State>
     ) {
-        self.sendScheduler = sendScheduler
-        self.stateBinding = stateBinding
+        self.dispatcher = dispatcher
+        self.subject = subject
 
-        let innerSend: Dispatch<Action> = { action in
-            var state = stateBinding.wrappedState
-            stateBinding.wrappedState = reducer(&state, action)
+        let dispatch: Dispatch = { action in
+            subject.send { state in
+                mutation(&state, action)
+            }
         }
 
         if let middleware = middleware {
-            middleware.store = toAnyStateContainer()
-            self.innerSend = { action in
-                middleware.respond(to: action, forwardingTo: innerSend)
+            middleware.store = eraseToAnyStateContainer()
+            self.dispatch = { action in
+                middleware.respond(to: action, forwardingTo: dispatch)
             }
         } else {
-            self.innerSend = innerSend
+            self.dispatch = dispatch
         }
     }
 }
 
-// MARK: - Convenience initializers
-
 public extension Store {
     convenience init(
-        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
-        initialState: State,
-        reducer: @escaping Reducer<State, Action>,
-        middleware: Middleware<State, Action>? = nil
+        dispatcher: Dispatcher = CombinedDispatcher(OnQueueDispatcher(), BarrierDispatcher()),
+        state: State,
+        middleware: Middleware<State>? = nil,
+        mutation: @escaping Mutation<State>
     ) {
         self.init(
-            sendScheduler: sendScheduler,
-            stateBinding: .init(initialState: initialState),
-            reducer: reducer,
-            middleware: middleware
-        )
-    }
-
-    convenience init(
-        sendScheduler: SendScheduler = BufferedRecursionSendScheduler(),
-        initialState: State,
-        reducer: @escaping Reducer<State, Action>,
-        middleware: Middleware<State, Action>? = nil
-    ) where State: Equatable {
-        self.init(
-            sendScheduler: sendScheduler,
-            stateBinding: .init(initialState: initialState),
-            reducer: reducer,
-            middleware: middleware
+            dispatcher: dispatcher,
+            middleware: middleware,
+            mutation: mutation,
+            subject: BindingValueSubject(state)
         )
     }
 }
-
-// MARK: - Publisher conformance
 
 public extension Store {
-    func receive<S: Subscriber>(subscriber: S) where S.Failure == Never, S.Input == State {
-        stateBinding.receive(subscriber: subscriber)
+    func subscribe(receiveValue: @escaping (State) -> Void) -> Cancellable {
+        subject.subscribe(receiveValue: receiveValue)
     }
-
-    typealias Failure = Never
-    typealias Output = State
 }
 
-// MARK: - StateContainer conformance
+public extension Store {
+    func scope<T>(
+        state keyPath: WritableKeyPath<State, T>,
+        middleware: Middleware<T>? = nil,
+        mutation: @escaping Mutation<T>
+    ) -> Store<T> {
+        .init(
+            dispatcher: dispatcher,
+            middleware: middleware,
+            mutation: mutation,
+            subject: subject.scope(value: keyPath)
+        )
+    }
+}
 
 public extension Store {
     var state: State {
-        stateBinding.wrappedState
+        subject.wrappedValue
     }
 
     func send(_ action: Action) {
-        sendScheduler.schedule(action: action, sendingTo: innerSend)
+        dispatcher.receive(action: action, transmitTo: dispatch)
     }
 
-    func toAnyStateContainer() -> AnyStateContainer<State, Action> {
-        var previousState = state
-        return AnyStateContainer(
+    func eraseToAnyStateContainer() -> AnyStateContainer<State> {
+        AnyStateContainer(
             getState: { [weak self] in
                 guard let self = self else {
-                    return previousState
+                    fatalError("Store has already deallocated before call to getState")
                 }
 
                 return self.state
             },
             send: { [weak self] action in
                 guard let self = self else {
-                    return
+                    fatalError("Store has already deallocated before call to send(_:)")
                 }
 
                 self.send(action)
-                previousState = self.state
             }
-        )
-    }
-}
-
-// MARK: - Store in scope
-
-public extension Store {
-    func scope<StateInScope, ActionInScope>(
-        to keyPath: WritableKeyPath<State, StateInScope>,
-        reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        middleware: Middleware<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> {
-        .init(
-            sendScheduler: sendScheduler,
-            stateBinding: stateBinding.scope(keyPath),
-            reducer: reducer,
-            middleware: middleware
-        )
-    }
-
-    func scope<StateInScope, ActionInScope>(
-        to keyPath: WritableKeyPath<State, StateInScope>,
-        isDuplicate predicate: @escaping (StateInScope, StateInScope) -> Bool,
-        reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        middleware: Middleware<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> {
-        .init(
-            sendScheduler: sendScheduler,
-            stateBinding: stateBinding.scope(keyPath, isDuplicate: predicate),
-            reducer: reducer,
-            middleware: middleware
-        )
-    }
-
-    func scope<StateInScope: Equatable, ActionInScope>(
-        to keyPath: WritableKeyPath<State, StateInScope>,
-        reducer: @escaping Reducer<StateInScope, ActionInScope>,
-        middleware: Middleware<StateInScope, ActionInScope>? = nil
-    ) -> Store<StateInScope, ActionInScope> {
-        .init(
-            sendScheduler: sendScheduler,
-            stateBinding: stateBinding.scope(keyPath),
-            reducer: reducer,
-            middleware: middleware
         )
     }
 }
