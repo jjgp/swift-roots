@@ -89,6 +89,7 @@ public extension Store {
         return AnyStateContainer(
             getState: { [weak self] in
                 guard let self = self else {
+                    assertionFailure("The Store has already deallocated and the last set state is returned")
                     return previousState
                 }
 
@@ -96,6 +97,7 @@ public extension Store {
             },
             send: { [weak self] action in
                 guard let self = self else {
+                    assertionFailure("The Store has already deallocated and the action will not proceed")
                     return
                 }
 
