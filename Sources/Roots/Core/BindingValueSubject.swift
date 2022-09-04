@@ -3,7 +3,7 @@ struct BindingValueSubject<Value>: Subject {
     private let sendValue: (Value) -> Void
     private let sendMutateValue: (@escaping (inout Value) -> Void) -> Void
     private let subscribeReceiveValue: (@escaping (Value) -> Void) -> Cancellable
-    public var wrappedValue: Value {
+    var wrappedValue: Value {
         get {
             binding.wrappedValue
         }

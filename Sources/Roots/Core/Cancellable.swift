@@ -1,4 +1,6 @@
-public final class Cancellable: Hashable {
+import Combine
+
+public final class Cancellable: Combine.Cancellable, Hashable {
     private(set) var execute: Cancel?
 
     public init(_ cancel: @escaping Cancel) {

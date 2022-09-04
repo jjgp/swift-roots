@@ -1,4 +1,5 @@
 import Combine
+import Foundation
 
 public struct BridgedPublisher<Output>: Combine.Publisher {
     private let subscribeReceiveValue: (@escaping (Output) -> Void) -> Cancellable
@@ -25,16 +26,26 @@ private extension BridgedPublisher {
         var cancellable: Cancellable?
         private var demand: Subscribers.Demand = .none
         private let lock: UnfairLock = .init()
+        private let recursiveLock = NSRecursiveLock()
         var subscriber: S?
 
         func receive(_ input: Output) {
-            lock {
-                guard demand > 0, let subscriber = subscriber else {
-                    return
-                }
+            lock.lock()
+            guard demand > 0, let subscriber = subscriber else {
+                lock.unlock()
+                return
+            }
+            demand -= 1
+            lock.unlock()
 
-                demand -= 1
-                demand += subscriber.receive(input)
+            recursiveLock.lock()
+            let demand = subscriber.receive(input)
+            recursiveLock.unlock()
+
+            if demand > 0 {
+                lock {
+                    self.demand += demand
+                }
             }
         }
 
@@ -57,7 +68,7 @@ private extension BridgedPublisher {
 }
 
 public extension Publisher {
-    var asBridged: BridgedPublisher<Output> {
+    func bridged() -> BridgedPublisher<Output> {
         .init(self)
     }
 }
